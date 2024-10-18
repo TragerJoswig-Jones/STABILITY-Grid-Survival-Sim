@@ -9,6 +9,8 @@ export class LowPassFilter extends Entity {
 		this.states = { filter: init_x };
 		this.omega_filt = omega_filt;
 		this.s_rated = s_rated;
+		this.max_input = s_rated;
+		this.min_input = 0;
 	}
 
 	updateStates(time, filterInput) {
@@ -17,6 +19,11 @@ export class LowPassFilter extends Entity {
 	}
 
 	update(time, filterInput) {
+		if (filterInput > this.max_input) {
+			filterInput = this.max_input;
+		} else if (filterInput < this.min_input) {
+			filterInput = this.min_input;
+		}
 		this.updateStates(time, filterInput);
 	}
 }

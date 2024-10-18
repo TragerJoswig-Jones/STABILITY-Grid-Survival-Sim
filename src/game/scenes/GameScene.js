@@ -1,10 +1,11 @@
 import { Scene } from 'engine/Scene.js';
 import { playSound } from 'engine/soundHandler.js';
-import { BAR_HEIGHT_SCALE, BAR_WIDTH_SCALE, FREQ_NOM, SCREEN_HEIGHT, SCREEN_WIDTH, S_BASE } from 'game/constants/game.js';
+import { BAR_HEIGHT_SCALE, BAR_WIDTH_SCALE, FREQ_NOM, OMEGA_NOM, SCREEN_HEIGHT, SCREEN_WIDTH, S_BASE } from 'game/constants/game.js';
 import { Plot } from 'game/entities/Plot.js';
 import { LowPassFilter } from 'game/entities/LowPassFilter.js';
 import { PowerBar } from 'game/entities/PowerBar.js';
 import { SwingDynamics } from 'game/entities/SwingDynamics.js';
+import { PIDControl } from 'game/entities/PIDControl.js';
 import { isKeyPressed, isKeyDown } from 'engine/inputHandler.js';
 import { Control } from 'game/constants/controls.js';
 
@@ -16,7 +17,9 @@ export class GameScene extends Scene {
   constructor() {
     super();
 
-    this.mechPower = 50;
+    this.score = 0;
+    this.load_update_time = 5;
+    this.mechPowerInput = 0;
     this.load = 50;
     this.maxLoad = 90;
     this.minLoad = 10;
@@ -31,11 +34,19 @@ export class GameScene extends Scene {
     let plotBound = 5;
     let plotBounds = [FREQ_NOM - plotBound, FREQ_NOM + plotBound];
 
-    this.genBar = new PowerBar({ x: SCREEN_WIDTH * (0.7), y: SCREEN_HEIGHT * (0.6) }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'blue');
-    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.3) - SCREEN_WIDTH / 10, y: SCREEN_HEIGHT * (0.6) }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red');
+    this.genBar = new PowerBar({ x: SCREEN_WIDTH * (0.7), y: SCREEN_HEIGHT * (0.6) }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'blue', true, true, 100);
+    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.3) - SCREEN_WIDTH / 10, y: SCREEN_HEIGHT * (0.6) }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red', true, false, 100);
     this.plot = new Plot({ x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.2) }, { width: SCREEN_WIDTH * 0.8, height: SCREEN_HEIGHT * 0.2 }, 1000, plotBounds, 'blue', FREQ_NOM, this.freqLim)
     this.systemSwing = new SwingDynamics(1, 100);
     this.genMech = new LowPassFilter(0.5, 100, this.load);
+    this.maxPower = this.genMech.s_rated  // The maximum available mechanical power
+
+    this.pidController = new PIDControl(0, 0, 0)
+    this.pidController.set_point = OMEGA_NOM
+
+    this.pidController.kp = 5;
+    this.pidController.ki = 1;
+    this.pidController.kd = .1;
 
     playSound(this.music);
   }
@@ -52,13 +63,18 @@ export class GameScene extends Scene {
     context.stroke();
   }
 
-  drawMessage(context) {
+  drawMessage(context, score) {
     context.textBaseline = 'middle';
     context.textAlign = 'center';
     context.fillStyle = 'white';
 
     context.font = 'normal 30px Nunito Sans';
-    context.fillText('Grid Game', SCREEN_WIDTH / 2, -15 + SCREEN_HEIGHT / 10);
+    context.fillText('STABILITY', SCREEN_WIDTH / 2, -15 + SCREEN_HEIGHT / 10);
+
+    context.font = 'normal 20px Nunito Sans';
+    context.fillText('Score: ' + score.toFixed(2) + ' MWh', SCREEN_WIDTH / 2, 15 + SCREEN_HEIGHT / 10);
+
+    //TODO: add display for CO2 emissions in Mt (Megatonnes) This will be an end game goal to make this zero?
   }
 
   checkGameOver() {
@@ -76,8 +92,9 @@ export class GameScene extends Scene {
   update(time, _, camera) {
     camera.update(time);
     if (time.secondsPassed > 0.1) {
-      time.secondsPassed = 0.1
+      time.secondsPassed = 0.1;
     }
+    this.score += time.secondsPassed / (60 * 60) * this.genMech.states.filter; //Update this to be energy transfered? and add a current power transfering display
 
     if (this.systemSwing.states.omega < this.omegaMin) {
       this.underFreqCount += 1;
@@ -88,7 +105,7 @@ export class GameScene extends Scene {
       this.overFreqCount = 0;
     }
 
-    if ((time.previous - this.lastStepTime) / 1000 > 10) {
+    if ((time.previous - this.lastStepTime) / 1000 > this.load_update_time) {
       let loadStep = 100 * (Math.random() - 0.5);
       this.load += loadStep;
       if (this.load > this.maxLoad) {
@@ -98,24 +115,29 @@ export class GameScene extends Scene {
         //this.load = this.minLoad
         this.load -= loadStep;
       }
-      this.lastStepTime = time.previous
+      this.lastStepTime = time.previous;
+
+      this.maxPower = this.genMech.s_rated * (1 - 0.2 * Math.random());
     }
-
     this.loadBar.update(this.load / S_BASE);
+    this.genMech.max_input = this.maxPower;
 
-    this.genMech.update(time, this.mechPower);
+    this.pidController.update(time, this.systemSwing.states.omega);
+    let mechPowerCtrl = this.pidController.control();
+    this.genMech.update(time, this.mechPowerInput + mechPowerCtrl);  //TODO: Add in hard limits on the power from genMech in case I switch this to not be a lowpass filter in the future or add in temporary power output limits.
 
     if (isKeyDown("Space")) {
-      this.mechPower = this.genMech.s_rated;
+      this.mechPowerInput = this.maxPower;
     } else {
-      this.mechPower = 0;
+      this.mechPowerInput = 0;
     }
     // if (isKeyPressed("Space")) {
-    //   this.mechPower = this.genMech.s_rated * 1.05;
+    //   this.mechPowerInput = this.genMech.s_rated * 1.05;
     // } else {
-    //   this.mechPower = this.mechPower * 0.95;
+    //   this.mechPowerInput = this.mechPowerInput * 0.95;
     // }
 
+    this.genBar.max_percent = this.maxPower / this.genMech.s_rated;
     this.genBar.update(this.genMech.states.filter / S_BASE);
     let net_power = this.genMech.states.filter - this.load;
     this.systemSwing.update(time, net_power);
@@ -132,6 +154,6 @@ export class GameScene extends Scene {
     this.loadBar.draw(context);
     this.plot.draw(context);
     this.drawBorder(context);
-    this.drawMessage(context);
+    this.drawMessage(context, this.score);
   }
 }

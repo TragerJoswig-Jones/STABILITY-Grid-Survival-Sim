@@ -45,7 +45,7 @@ export class Game {
 		if (!this.scene.checkGameOver()) {
 			window.requestAnimationFrame(this.frame);
 		} else {
-			alert("GAME OVER")
+			alert("GAME OVER \n score: " + this.scene.score.toFixed(2) + ' MWh')
 			this.resetGame()
 			this.start()
 		}
