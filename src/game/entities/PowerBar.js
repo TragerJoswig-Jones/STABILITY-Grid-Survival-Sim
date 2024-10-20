@@ -4,7 +4,7 @@ import { Entity } from 'engine/Entity.js';
 export class PowerBar extends Entity {
 	image = document.querySelector('img#logo');
 
-	constructor(position, size, color, num_display, lim_display, value) {
+	constructor(position, size, color, num_display, lim_display, value, label = { name: 'Power', unit: 'MW' }) {
 		super(position);
 		this.size = size;
 		this.percent = 0;
@@ -15,6 +15,7 @@ export class PowerBar extends Entity {
 		this.value = value
 		this.max_percent = 1.0
 		this.bar_height = 2
+		this.label = label
 	}
 
 	updatePercent(newPercent) {
@@ -40,7 +41,7 @@ export class PowerBar extends Entity {
 		if (this.num_display) {
 			// Current power display
 			context.font = 'normal ' + this.font_size.toString() + 'px Nunito Sans';
-			context.fillText('Power: ' + (this.percent * this.value).toFixed(0) + ' MW', this.position.x + this.size.width / 2, this.position.y + this.size.height + this.font_size * 1.2);
+			context.fillText(this.label.name + ' ' + (this.percent * this.value).toFixed(0) + ' ' + this.label.unit, this.position.x + this.size.width / 2, this.position.y + this.size.height + this.font_size * 1.2);
 		}
 		if (this.lim_display) {
 			// Power bar limit
@@ -48,7 +49,7 @@ export class PowerBar extends Entity {
 			context.fillRect(this.position.x, this.position.y + (this.size.height * (1 - this.max_percent)) + this.bar_height, this.size.width, this.bar_height);
 
 			context.font = 'normal ' + this.font_size.toString() + 'px Nunito Sans';
-			context.fillText('Limit: ' + (this.max_percent * this.value).toFixed(0) + ' MW', this.position.x + this.size.width / 2, this.position.y - this.font_size * 1.2);
+			context.fillText('Limit: ' + (this.max_percent * this.value).toFixed(0) + ' ' + this.label.unit, this.position.x + this.size.width / 2, this.position.y - this.font_size * 1.2);
 		}
 	}
 }

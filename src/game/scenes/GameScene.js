@@ -6,6 +6,7 @@ import { LowPassFilter } from 'game/entities/LowPassFilter.js';
 import { PowerBar } from 'game/entities/PowerBar.js';
 import { SwingDynamics } from 'game/entities/SwingDynamics.js';
 import { PIDControl } from 'game/entities/PIDControl.js';
+import { Storage } from 'game/entities/Storage.js';
 import { isKeyPressed, isKeyDown } from 'engine/inputHandler.js';
 import { Control } from 'game/constants/controls.js';
 
@@ -17,13 +18,18 @@ export class GameScene extends Scene {
   constructor() {
     super();
 
-    this.score = 0;
-    this.load_update_time = 5;
+    // Variable init
     this.mechPowerInput = 0;
     this.load = 50;
+    this.score = 0;
+
+    // Gameplay parameters
+    this.load_update_time = 5;
+    this.lastStepTime = document.timeline.currentTime; // TODO: Or set to 0? Unsure how to handle game resets
+
     this.maxLoad = 90;
     this.minLoad = 10;
-    this.lastStepTime = 0;
+
     this.freqBound = 3;
     this.freqLim = [FREQ_NOM - this.freqBound, FREQ_NOM + this.freqBound]
     this.omegaMin = 2 * Math.PI * this.freqLim[0];
@@ -31,24 +37,50 @@ export class GameScene extends Scene {
     this.underFreqCount = 0;
     this.overFreqCount = 0;
     this.timeLim = 10;  // frames outside of bound before game over
+
+    this.calcLevelDuration = (level) => 10; //level * 10;
+    this.level = 1;
+    this.levelEndTime = this.calcLevelDuration(this.level)
+
+    let genInertia = 2;  // j
+    let genMaxPower = 100;  // MW
+
+    let storCapacity = 0.1
+    let storDischargeLim = 50
+    let storChargeLim = 50
+    let storEfficiency = 0.9
+
+    // Display parameters
     let plotBound = 5;
     let plotBounds = [FREQ_NOM - plotBound, FREQ_NOM + plotBound];
+    let powerBarY = SCREEN_HEIGHT * (0.4);
+    let plotY = SCREEN_HEIGHT * (0.15);
 
-    this.genBar = new PowerBar({ x: SCREEN_WIDTH * (0.7), y: SCREEN_HEIGHT * (0.6) }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'blue', true, true, 100);
-    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.3) - SCREEN_WIDTH / 10, y: SCREEN_HEIGHT * (0.6) }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red', true, false, 100);
-    this.plot = new Plot({ x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.2) }, { width: SCREEN_WIDTH * 0.8, height: SCREEN_HEIGHT * 0.2 }, 1000, plotBounds, 'blue', FREQ_NOM, this.freqLim)
-    this.systemSwing = new SwingDynamics(1, 100);
+    // Display entities
+    this.genBar = new PowerBar({ x: SCREEN_WIDTH * (0.7), y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'blue', true, true, 100);
+    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.3) - SCREEN_WIDTH / 10, y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red', true, false, 100);
+    this.plot = new Plot({ x: SCREEN_WIDTH * (0.1), y: plotY }, { width: SCREEN_WIDTH * 0.8, height: SCREEN_HEIGHT * 0.2 }, 1000, plotBounds, 'blue', FREQ_NOM, this.freqLim)
+
+    let storBarY = powerBarY + SCREEN_HEIGHT * BAR_HEIGHT_SCALE + 40;
+    let storLabel = { name: 'Energy:', unit: 'kWh' };
+    this.storSOCBar = new PowerBar({ x: SCREEN_WIDTH * (0.5) - 0.5 * SCREEN_WIDTH * BAR_WIDTH_SCALE, y: storBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * 0.5 * BAR_HEIGHT_SCALE },
+      'green', true, false, storCapacity * 1000, storLabel);
+
+    // Dynamics entities
+    this.systemSwing = new SwingDynamics(genInertia, genMaxPower);
     this.genMech = new LowPassFilter(0.5, 100, this.load);
     this.maxPower = this.genMech.s_rated  // The maximum available mechanical power
+
+    this.storage = new Storage(storCapacity, storDischargeLim, storChargeLim, storEfficiency)
 
     this.pidController = new PIDControl(0, 0, 0)
     this.pidController.set_point = OMEGA_NOM
 
-    this.pidController.kp = 5;
-    this.pidController.ki = 1;
-    this.pidController.kd = .1;
+    this.pidController.kp = 10;
+    this.pidController.ki = 5;
+    this.pidController.kd = 0;
 
-    playSound(this.music);
+    playSound(this.music, { volume: 0.1, loop: true });
   }
 
   handleBorderFlash = () => {
@@ -96,6 +128,19 @@ export class GameScene extends Scene {
     }
     this.score += time.secondsPassed / (60 * 60) * this.genMech.states.filter; //Update this to be energy transfered? and add a current power transfering display
 
+    /* Difficulty progression */
+    if ((time.previous - time.startTime) / 1000 > this.levelEndTime) {
+      this.level += 1;
+      this.levelEndTime += this.calcLevelDuration(this.level);
+
+      if (this.level == 2) {
+        this.systemSwing.updateH(1)
+      } else if (this.level > 2 && this.systemSwing.j > 0.5) {
+        this.systemSwing.updateH(this.systemSwing.j -= 0.1)
+      }
+    }
+
+    /* Game loss counter */
     if (this.systemSwing.states.omega < this.omegaMin) {
       this.underFreqCount += 1;
     } else if (this.systemSwing.states.omega > this.omegaMax) {
@@ -105,15 +150,19 @@ export class GameScene extends Scene {
       this.overFreqCount = 0;
     }
 
+    /* Load steps / disturbances */
     if ((time.previous - this.lastStepTime) / 1000 > this.load_update_time) {
+      //let loadStep = 50 * (Math.random() - (this.load / this.maxLoad));
       let loadStep = 100 * (Math.random() - 0.5);
       this.load += loadStep;
       if (this.load > this.maxLoad) {
         //this.load = this.maxLoad;
-        this.load -= loadStep;
+        //this.load -= 1 * loadStep;
+        this.load = (this.maxLoad - this.minLoad) / 2;
       } else if (this.load < this.minLoad) {
         //this.load = this.minLoad
-        this.load -= loadStep;
+        //this.load -= 1 * loadStep;
+        this.load = (this.maxLoad - this.minLoad) / 2;
       }
       this.lastStepTime = time.previous;
 
@@ -137,9 +186,22 @@ export class GameScene extends Scene {
     //   this.mechPowerInput = this.mechPowerInput * 0.95;
     // }
 
+    let storageDispatch = 0;
+    if (isKeyDown("ArrowUp")) {
+      storageDispatch = this.storage.dischargeRate;
+    } else if (isKeyDown("ArrowDown")) {
+      storageDispatch = -this.storage.chargeRate;
+    }
+
+    let storagePower = this.storage.control(time, storageDispatch)
+    let storageSOC = this.storage.states.soc;
+    this.storSOCBar.update(storageSOC / this.storage.maxSOC);
+
     this.genBar.max_percent = this.maxPower / this.genMech.s_rated;
     this.genBar.update(this.genMech.states.filter / S_BASE);
-    let net_power = this.genMech.states.filter - this.load;
+    let genPower = this.genMech.states.filter
+
+    let net_power = genPower - this.load + storagePower;
     this.systemSwing.update(time, net_power);
 
     this.plot.update(this.systemSwing.states.omega / (2 * Math.PI))
@@ -152,6 +214,7 @@ export class GameScene extends Scene {
 
     this.genBar.draw(context);
     this.loadBar.draw(context);
+    this.storSOCBar.draw(context);
     this.plot.draw(context);
     this.drawBorder(context);
     this.drawMessage(context, this.score);

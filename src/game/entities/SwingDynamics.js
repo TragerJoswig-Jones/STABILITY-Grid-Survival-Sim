@@ -12,6 +12,11 @@ export class SwingDynamics extends Entity {
 		this.h = this.j * OMEGA_NOM * OMEGA_NOM / (2 * this.s_rated);
 	}
 
+	updateH(j) {
+		this.j = j;
+		this.h = j * OMEGA_NOM * OMEGA_NOM / (2 * this.s_rated);
+	}
+
 	updateStates(time, power) {
 		let theta_dot = this.states.omega;
 		let omega_dot = 1 / (2 * this.h / OMEGA_NOM) * power;

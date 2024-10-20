@@ -24,6 +24,7 @@ export class Game {
 	frameTime = {
 		previous: 0,
 		secondsPassed: 0,
+		startTime: 0
 	};
 
 	/**
@@ -60,8 +61,9 @@ export class Game {
 
 	resetGame() {
 		this.frameTime = {
-			previous: 0,
+			previous: document.timeline.currentTime,
 			secondsPassed: 0,
+			startTime: document.timeline.currentTime
 		};
 		this.scene = new GameScene(this.frameTime, this.camera)
 	}
