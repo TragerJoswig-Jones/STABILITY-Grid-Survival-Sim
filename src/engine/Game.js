@@ -1,4 +1,4 @@
-import { pollGamepads, registerGamepadEvents, registerKeyEvents } from './inputHandler.js';
+import { pollGamepads, registerGamepadEvents, registerKeyEvents, registerClickEvents } from './inputHandler.js';
 import { getContext } from './context.js';
 import { Camera } from './Camera.js';
 import { GameScene } from 'game/scenes/GameScene.js';
@@ -71,6 +71,7 @@ export class Game {
 	start() {
 		registerKeyEvents();
 		registerGamepadEvents();
+		registerClickEvents();
 
 		alert("Use the space bar to increase power output. Click to start!")
 		window.requestAnimationFrame(this.frame);

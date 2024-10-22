@@ -38,6 +38,8 @@ export class PowerBar extends Entity {
 		context.fillStyle = this.color;
 		context.fillRect(this.position.x, this.position.y + (this.size.height * (1 - this.percent)), this.size.width, this.size.height * this.percent);
 		context.stroke();
+
+		context.textAlign = 'center';
 		if (this.num_display) {
 			// Current power display
 			context.font = 'normal ' + this.font_size.toString() + 'px Nunito Sans';

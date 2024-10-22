@@ -1,12 +1,20 @@
 import { GamepadThumbstick } from './constants/control.js';
 import { Control } from 'game/constants/controls.js';
 import { controls } from 'game/config/controls.js';
+import { getContext } from './context.js';
+import { SCREEN_HEIGHT, SCREEN_WIDTH } from 'game/constants/game.js';
+
+
+// const context = getContext('body', SCREEN_WIDTH, SCREEN_HEIGHT);
+//const canvas = document.getElementById("canvas"); //Todo: Make this use getContext(selector, width, height)?
 
 const heldKeys = new Set();
 const pressedKeys = new Set();
 
 const gamePads = new Map();
 const pressedButtons = new Set();
+
+const clickLocation = { x: NaN, y: NaN }; //new Map();
 
 const mappedKeys = controls
 	.map(({ keyboard }) => Object.values(keyboard))
@@ -39,6 +47,27 @@ function handleGamepadDisconnected(event) {
 	gamePads.delete(index);
 }
 
+function getXY(event) { //adjust mouse click to canvas coordinates
+	//const rect = context.canvas.getBoundingClientRect()
+	const y = event.clientY //- rect.top
+	const x = event.clientX //- rect.left
+	return { x: x, y: y }
+}
+
+function handleClick(event) {
+	event.preventDefault();
+	const XY = getXY(event);
+	//clickLocation.set('x', XY.x).set('x', XY.y)
+	clickLocation.x = XY.x;
+	clickLocation.y = XY.y;
+}
+
+function handleUnclick(event) {
+	event.preventDefault();
+	clickLocation.x = NaN;
+	clickLocation.y = NaN;
+}
+
 // Control event handlers
 
 export function registerKeyEvents() {
@@ -49,6 +78,11 @@ export function registerKeyEvents() {
 export function registerGamepadEvents() {
 	window.addEventListener('gamepadconnected', handleGamepadConnected);
 	window.addEventListener('gamepaddisconnected', handleGamepadDisconnected);
+}
+
+export function registerClickEvents() {
+	window.addEventListener('mousedown', handleClick);
+	window.addEventListener('mouseup', handleUnclick);
 }
 
 export function pollGamepads() {
@@ -135,3 +169,5 @@ export const isDown = (id) => isControlDown(id, Control.DOWN)
 	);
 
 export const isIdle = (id) => !(isLeft(id) || isRight(id) || isUp(id) || isDown(id));
+
+export const whereClickLocation = () => clickLocation;
