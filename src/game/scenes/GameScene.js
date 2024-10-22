@@ -292,12 +292,18 @@ export class GameScene extends Scene {
       let x_left = Math.floor((screenWidth - canvasWidth) / 2);
       let y_top = Math.floor((screenHeight - canvasHeight) / 2);  //TODO: FIX THE TOP NOT ALIGNING PROPERLY HERE
 
-      canvasXY.x = (clickLocation.x - x_left) * widthScale;
-      canvasXY.y = (clickLocation.y - y_top) * heightScale;
+      canvasXY.x = Math.floor((clickLocation.x - x_left) * widthScale);
+      canvasXY.y = Math.floor((clickLocation.y - y_top) * heightScale);
 
-      this.b1Held = context.isPointInPath(this.b1, canvasXY.x, canvasXY.y);
-      this.b2Held = context.isPointInPath(this.b2, canvasXY.x, canvasXY.y);
-      this.b3Held = context.isPointInPath(this.b3, canvasXY.x, canvasXY.y);
+      try {
+        this.b1Held = context.isPointInPath(this.b1, canvasXY.x, canvasXY.y);
+        this.b2Held = context.isPointInPath(this.b2, canvasXY.x, canvasXY.y);
+        this.b3Held = context.isPointInPath(this.b3, canvasXY.x, canvasXY.y);
+      } catch (TypeError) {  // Error when button is held down and game resets until new click
+        this.b1Held = false;
+        this.b2Held = false;
+        this.b3Held = false;
+      }
     } else {
       this.b1Held = false;
       this.b2Held = false;

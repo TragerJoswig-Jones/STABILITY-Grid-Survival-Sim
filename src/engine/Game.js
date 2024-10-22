@@ -1,4 +1,4 @@
-import { pollGamepads, registerGamepadEvents, registerKeyEvents, registerClickEvents } from './inputHandler.js';
+import { pollGamepads, registerGamepadEvents, registerKeyEvents, registerClickEvents, resetClickLocation } from './inputHandler.js';
 import { getContext } from './context.js';
 import { Camera } from './Camera.js';
 import { GameScene } from 'game/scenes/GameScene.js';
@@ -65,6 +65,7 @@ export class Game {
 			secondsPassed: 0,
 			startTime: document.timeline.currentTime
 		};
+		resetClickLocation()
 		this.scene = new GameScene(this.frameTime, this.camera)
 	}
 

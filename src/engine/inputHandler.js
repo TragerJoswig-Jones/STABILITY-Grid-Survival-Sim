@@ -85,6 +85,11 @@ export function registerClickEvents() {
 	window.addEventListener('mouseup', handleUnclick);
 }
 
+export function resetClickLocation() {
+	clickLocation.x = NaN; // Reset click location in case it is held from a previous game
+	clickLocation.y = NaN;
+}
+
 export function pollGamepads() {
 	for (const gamePad of navigator.getGamepads()) {
 		if (!gamePad) continue;
