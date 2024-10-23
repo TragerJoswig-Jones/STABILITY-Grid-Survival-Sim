@@ -14,7 +14,9 @@ const pressedKeys = new Set();
 const gamePads = new Map();
 const pressedButtons = new Set();
 
-const clickLocation = { x: NaN, y: NaN }; //new Map();
+const clickLocation = { x: NaN, y: NaN };
+
+const ongoingTouches = [];
 
 const mappedKeys = controls
 	.map(({ keyboard }) => Object.values(keyboard))
@@ -68,11 +70,75 @@ function handleUnclick(event) {
 	clickLocation.y = NaN;
 }
 
+//TODO: Add event handlers for mobile phone browsers
+// https://stackoverflow.com/questions/26961140/on-click-event-for-mobile
+function copyTouch({ identifier, pageX, pageY }) {
+	return { identifier, pageX, pageY };
+}
+
+function ongoingTouchIndexById(idToFind) {
+	for (let i = 0; i < ongoingTouches.length; i++) {
+		const id = ongoingTouches[i].identifier;
+
+		if (id === idToFind) {
+			return i;
+		}
+	}
+	return -1; // not found
+}
+
+function handleStart(event) {
+	event.preventDefault();
+	const touches = event.changedTouches;
+
+	for (let i = 0; i < touches.length; i++) {
+		ongoingTouches.push(copyTouch(touches[i]));
+	}
+}
+
+function handleEnd(event) {
+	event.preventDefault();
+	const touches = event.changedTouches;
+
+	for (let i = 0; i < touches.length; i++) {
+		let idx = ongoingTouchIndexById(touches[i].identifier);
+		ongoingTouches.splice(idx, 1); // remove it; we're done
+	}
+}
+
+function handleMove(event) {
+	event.preventDefault();
+	const touches = event.changedTouches;
+
+	for (let i = 0; i < touches.length; i++) {
+		const idx = ongoingTouchIndexById(touches[i].identifier);
+		ongoingTouches.splice(idx, 1, copyTouch(touches[i])); // swap in the new touch record
+	}
+}
+
+function handleCancel(event) {
+	event.preventDefault();
+	const touches = event.changedTouches;
+
+	for (let i = 0; i < touches.length; i++) {
+		let idx = ongoingTouchIndexById(touches[i].identifier);
+		ongoingTouches.splice(idx, 1); // remove it; we're done
+	}
+}
+
+
 // Control event handlers
 
 export function registerKeyEvents() {
 	window.addEventListener('keydown', handleKeyDown);
 	window.addEventListener('keyup', handleKeyUp);
+}
+
+export function registerTouchEvents() {
+	window.addEventListener('touchstart', handleStart)
+	window.addEventListener('touchend', handleEnd)
+	window.addEventListener("touchcancel", handleCancel);
+	window.addEventListener("touchmove", handleMove);
 }
 
 export function registerGamepadEvents() {
@@ -176,3 +242,5 @@ export const isDown = (id) => isControlDown(id, Control.DOWN)
 export const isIdle = (id) => !(isLeft(id) || isRight(id) || isUp(id) || isDown(id));
 
 export const whereClickLocation = () => clickLocation;
+
+export const getTouches = () => ongoingTouches;

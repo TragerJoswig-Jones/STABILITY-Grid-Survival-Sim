@@ -7,7 +7,7 @@ import { PowerBar } from 'game/entities/PowerBar.js';
 import { SwingDynamics } from 'game/entities/SwingDynamics.js';
 import { PIDControl } from 'game/entities/PIDControl.js';
 import { Storage } from 'game/entities/Storage.js';
-import { isKeyPressed, isKeyDown, whereClickLocation } from 'engine/inputHandler.js';
+import { isKeyPressed, isKeyDown, whereClickLocation, getTouches } from 'engine/inputHandler.js';
 import { Control } from 'game/constants/controls.js';
 
 export class GameScene extends Scene {
@@ -261,9 +261,14 @@ export class GameScene extends Scene {
     let mechPowerCtrl = this.pidController.control();
     this.genMech.update(time, this.mechPowerInput + mechPowerCtrl);  //TODO: Add in hard limits on the power from genMech in case I switch this to not be a lowpass filter in the future or add in temporary power output limits.
 
+    let touches = [...getTouches()];  // Shallow copy of the array so that we can append a click location
+
     let clickLocation = whereClickLocation();
-    let canvasXY = { x: NaN, y: NaN };
     if (!(isNaN(clickLocation.x) && isNaN(clickLocation.y))) {
+      touches.push({ identifier: -1, pageX: clickLocation.x, pageY: clickLocation.y });  // Add the click event to the list of ongoing touches  TODO: Make the game check if the device is touch capable first?
+    }
+
+    if (touches.length > 0) {
       // const rect = context.canvas.getBoundingClientRect()
       // let canvasXY = { x: clickLocation.x - rect.top, y: clickLocation.y - rect.left };
       // let xy_left = (context.canvas.clientLeft + context.canvas.offsetLeft);
@@ -290,19 +295,21 @@ export class GameScene extends Scene {
       let heightScale = context.canvas.height / canvasHeight;
 
       let x_left = Math.floor((screenWidth - canvasWidth) / 2);
-      let y_top = Math.floor((screenHeight - canvasHeight) / 2);  //TODO: FIX THE TOP NOT ALIGNING PROPERLY HERE
+      let y_top = Math.floor((screenHeight - canvasHeight) / 2);
 
-      canvasXY.x = Math.floor((clickLocation.x - x_left) * widthScale);
-      canvasXY.y = Math.floor((clickLocation.y - y_top) * heightScale);
+      for (let i = 0; i < touches.length; i++) {
+        let x = Math.floor((touches[i].pageX - x_left) * widthScale);
+        let y = Math.floor((touches[i].pageY - y_top) * heightScale);
 
-      try {
-        this.b1Held = context.isPointInPath(this.b1, canvasXY.x, canvasXY.y);
-        this.b2Held = context.isPointInPath(this.b2, canvasXY.x, canvasXY.y);
-        this.b3Held = context.isPointInPath(this.b3, canvasXY.x, canvasXY.y);
-      } catch (TypeError) {  // Error when button is held down and game resets until new click
-        this.b1Held = false;
-        this.b2Held = false;
-        this.b3Held = false;
+        try {  //TODO: Make this use a for loop over a list of buttons
+          this.b1Held = context.isPointInPath(this.b1, x, y);
+          this.b2Held = context.isPointInPath(this.b2, x, y);
+          this.b3Held = context.isPointInPath(this.b3, x, y);
+        } catch (TypeError) {  // Error when button is held down and game resets until new click
+          this.b1Held = false;
+          this.b2Held = false;
+          this.b3Held = false;
+        }
       }
     } else {
       this.b1Held = false;
@@ -317,16 +324,10 @@ export class GameScene extends Scene {
       this.mechPowerInput = 0;
     }
 
-
     // if (isKeyDown("Space")) {
     //   this.mechPowerInput = this.maxPower;
     // } else {
     //   this.mechPowerInput = 0;
-    // }
-    // if (isKeyPressed("Space")) {
-    //   this.mechPowerInput = this.genMech.s_rated * 1.05;
-    // } else {
-    //   this.mechPowerInput = this.mechPowerInput * 0.95;
     // }
 
     let storagePower = 0;
