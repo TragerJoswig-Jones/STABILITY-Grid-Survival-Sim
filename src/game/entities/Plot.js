@@ -4,15 +4,17 @@ import { Entity } from 'engine/Entity.js';
 export class Plot extends Entity {
 	image = document.querySelector('img#logo');
 
-	constructor(position, size, buffer, yaxis, color, initValue, lims) {
+	constructor(position, size, buffer, yaxis, color, initValue, lims, xlabel = NaN, ylabel = NaN, font_size = 10) {
 		super(position);
 		this.size = size;
 		this.values = new Array(buffer).fill(initValue);  //TypedArray for fixed size?
 		this.color = color;
 		this.yaxis = yaxis;
 		this.xaxis = [0, buffer];  // scaling needed
-		this.ylabel = "x-axis";
-		this.xlabel = "y-axis";
+		this.ylabel = ylabel;
+		this.xlabel = xlabel;
+		this.font_size = font_size
+		this.font_color = "grey"
 		this.lims = lims
 	}
 
@@ -42,6 +44,22 @@ export class Plot extends Entity {
 		context.beginPath();
 		context.rect(this.position.x, this.position.y, this.size.width, this.size.height);
 		context.stroke();
+
+		context.textBaseline = 'middle';
+		context.textAlign = 'center';
+		context.fillStyle = this.font_color;
+		context.font = 'normal ' + this.font_size.toString() + 'px Nunito Sans';
+		if (this.ylabel) {
+			context.save();
+			context.translate(this.position.x, this.position.y);
+			context.rotate(-Math.PI / 2);
+
+			context.fillText(this.ylabel, -this.size.height / 2, -this.font_size);
+			context.restore();
+		}
+		if (this.xlabel) {
+			context.fillText(this.xlabel, this.position.x + Math.floor(this.size.width / 2), this.position.y + this.size.height + this.font_size);
+		}
 
 		context.beginPath();
 		context.strokeStyle = 'grey';

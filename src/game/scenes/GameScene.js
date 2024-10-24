@@ -65,9 +65,9 @@ export class GameScene extends Scene {
     let plotY = SCREEN_HEIGHT * (0.15);
 
     // Display entities
-    this.genBar = new PowerBar({ x: SCREEN_WIDTH * (0.7), y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'blue', true, false, 100);
-    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.3) - SCREEN_WIDTH / 10, y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red', true, false, 100);
-    this.plot = new Plot({ x: SCREEN_WIDTH * (0.1), y: plotY }, { width: SCREEN_WIDTH * 0.8, height: SCREEN_HEIGHT * 0.2 }, 1000, plotBounds, 'blue', FREQ_NOM, this.freqLim)
+    this.genBar = new PowerBar({ x: SCREEN_WIDTH * (0.7), y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'blue', true, false, 100, { name: 'Power', unit: 'MW' }, { label: "Generation", leftSide: false, fontSize: 15 });
+    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.3) - SCREEN_WIDTH / 10, y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red', true, false, 100, { name: 'Power', unit: 'MW' }, { label: "Load", leftSide: true, fontSize: 15 });
+    this.plot = new Plot({ x: SCREEN_WIDTH * (0.1), y: plotY }, { width: SCREEN_WIDTH * 0.8, height: SCREEN_HEIGHT * 0.2 }, 1000, plotBounds, 'blue', FREQ_NOM, this.freqLim, "time (s)", "frequency (Hz)", 12)
 
     let storBarY = powerBarY + SCREEN_HEIGHT * BAR_HEIGHT_SCALE + 40;
     let storLabel = { name: 'Energy:', unit: 'kWh' };
@@ -75,9 +75,9 @@ export class GameScene extends Scene {
       'green', true, false, storCapacity * 1000, storLabel);
 
     // Display buttons
-    this.powerButton = { x: SCREEN_WIDTH * (0.8), y: SCREEN_HEIGHT * (0.75), w: 50, h: 100 };
-    this.storChargeButton = { x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.75), w: 50, h: 50 };
-    this.storDischargeButton = { x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.85), w: 50, h: 50 };
+    this.powerButton = { label: "Power ↑", x: SCREEN_WIDTH * (0.8), y: SCREEN_HEIGHT * (0.75), w: 50, h: 100 };
+    this.storDischargeButton = { label: "Discharge", x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.75), w: 50, h: 50 };
+    this.storChargeButton = { label: "Charge", x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.85), w: 50, h: 50 };
 
     this.b1Held = false;
     this.b2Held = false;
@@ -104,43 +104,44 @@ export class GameScene extends Scene {
     this.lightness = 100;
   };
 
-  drawButtons(context) {
-    context.lineWidth = 4;
-    context.strokeStyle = `hsl(134 90% ${this.lightness}%)`;
+  drawButton(context, button, buttonHeld) {
+    context.textBaseline = 'middle';
+    context.textAlign = 'center';
+    context.fillStyle = 'white';
 
-    /* Power button */
-    if (this.b1Held) {
+    if (buttonHeld) {
       context.strokeStyle = 'blue';
     } else {
       context.strokeStyle = `hsl(134 90% ${this.lightness}%)`;
     }
-    this.b1 = new Path2D();
-    this.b1.rect(this.powerButton.x, this.powerButton.y, this.powerButton.w, this.powerButton.h)
-    this.b1.closePath()
-    context.stroke(this.b1);
+    let b = new Path2D();
+    b.rect(button.x, button.y, button.w, button.h)
+    b.closePath()
+    context.stroke(b);
+    context.font = 'normal 10px Nunito Sans';
+    context.fillText(button.label, button.x + Math.floor(button.w / 2), button.y + Math.floor(button.h / 2));
+    return b
+  }
+
+  drawButtons(context) {
+    context.lineWidth = 4;
+    context.strokeStyle = `hsl(134 90% ${this.lightness}%)`;
+
+    context.textBaseline = 'middle';
+    context.textAlign = 'center';
+    context.fillStyle = 'white';
+
+    /* Power button */
+    this.b1 = this.drawButton(context, this.powerButton, this.b1Held); //TODO: Make this append to a const button list
+
+
 
     if (this.storageEnabled) {
       /* Charge button */
-      if (this.b2Held) {
-        context.strokeStyle = 'blue';
-      } else {
-        context.strokeStyle = `hsl(134 90% ${this.lightness}%)`;
-      }
-      this.b2 = new Path2D();
-      this.b2.rect(this.storChargeButton.x, this.storChargeButton.y, this.storChargeButton.w, this.storChargeButton.h)
-      this.b2.closePath()
-      context.stroke(this.b2);
+      this.b2 = this.drawButton(context, this.storChargeButton, this.b2Held); //TODO: Make this append to a const button list
 
       /* Discharge button */
-      if (this.b3Held) {
-        context.strokeStyle = 'blue';
-      } else {
-        context.strokeStyle = `hsl(134 90% ${this.lightness}%)`;
-      }
-      this.b3 = new Path2D();
-      this.b3.rect(this.storDischargeButton.x, this.storDischargeButton.y, this.storDischargeButton.w, this.storDischargeButton.h)
-      this.b3.closePath()
-      context.stroke(this.b3);
+      this.b3 = this.drawButton(context, this.storDischargeButton, this.b3Held); //TODO: Make this append to a const button list
     }
     context.strokeStyle = `hsl(134 90% ${this.lightness}%)`;
   }
@@ -339,10 +340,10 @@ export class GameScene extends Scene {
     let storagePower = 0;
     if (this.storageEnabled) {
       let storageDispatch = 0;
-      if (isKeyDown("ArrowUp") || this.b2Held) {
-        storageDispatch = this.storage.dischargeRate;
-      } else if (isKeyDown("ArrowDown") || this.b3Held) {
+      if (isKeyDown("ArrowDown") || this.b2Held) {
         storageDispatch = -this.storage.chargeRate;
+      } else if (isKeyDown("ArrowUp") || this.b3Held) {
+        storageDispatch = this.storage.dischargeRate;
       }
 
       storagePower = this.storage.control(time, storageDispatch)

@@ -76,7 +76,7 @@ export class Game {
 		registerClickEvents();
 		registerTouchEvents();
 
-		alert("Use the space bar to increase power output. Click to start!")
+		alert("Don't let the frequency (blue line) go beyond the limits (red lines). Use the power button / space bar to increase power output (blue bar) to be balanced with the load (red bar). Click to start!")
 		window.requestAnimationFrame(this.frame);
 	}
 }
