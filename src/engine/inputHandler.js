@@ -151,6 +151,10 @@ export function registerClickEvents() {
 	window.addEventListener('mouseup', handleUnclick);
 }
 
+export function resetOngoingTouches() {
+	ongoingTouches.splice(0, ongoingTouches.length)
+}
+
 export function resetClickLocation() {
 	clickLocation.x = NaN; // Reset click location in case it is held from a previous game
 	clickLocation.y = NaN;

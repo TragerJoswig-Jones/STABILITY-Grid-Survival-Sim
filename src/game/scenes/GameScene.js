@@ -49,7 +49,7 @@ export class GameScene extends Scene {
     let storDischargeLim = 50;
     let storChargeLim = 50;
     let storEfficiency = 0.9;
-    this.storageEnabled = true; //false;
+    this.storageEnabled = false;
 
     let kp = 0;
     let ki = 0;
@@ -75,9 +75,9 @@ export class GameScene extends Scene {
       'green', true, false, storCapacity * 1000, storLabel);
 
     // Display buttons
-    this.powerButton = { x: SCREEN_WIDTH * (0.8), y: SCREEN_HEIGHT * (0.8), w: 50, h: 50 };
-    this.storChargeButton = { x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.8), w: 50, h: 25 };
-    this.storDischargeButton = { x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.85), w: 50, h: 25 };
+    this.powerButton = { x: SCREEN_WIDTH * (0.8), y: SCREEN_HEIGHT * (0.75), w: 50, h: 100 };
+    this.storChargeButton = { x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.75), w: 50, h: 50 };
+    this.storDischargeButton = { x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.85), w: 50, h: 50 };
 
     this.b1Held = false;
     this.b2Held = false;
@@ -297,14 +297,20 @@ export class GameScene extends Scene {
       let x_left = Math.floor((screenWidth - canvasWidth) / 2);
       let y_top = Math.floor((screenHeight - canvasHeight) / 2);
 
+      this.b1Held = false;  // reset button registers to false before checking below
+      this.b2Held = false;
+      this.b3Held = false;
+
       for (let i = 0; i < touches.length; i++) {
         let x = Math.floor((touches[i].pageX - x_left) * widthScale);
         let y = Math.floor((touches[i].pageY - y_top) * heightScale);
 
         try {  //TODO: Make this use a for loop over a list of buttons
-          this.b1Held = context.isPointInPath(this.b1, x, y);
-          this.b2Held = context.isPointInPath(this.b2, x, y);
-          this.b3Held = context.isPointInPath(this.b3, x, y);
+          this.b1Held = (this.b1Held || context.isPointInPath(this.b1, x, y));  //TODO: Fix this to not reset a true state once it is determined to be held
+          if (this.storageEnabled) {  //TODO: Add these buttons to the list when storage is enabled
+            this.b2Held = (this.b2Held || context.isPointInPath(this.b2, x, y));
+            this.b3Held = (this.b3Held || context.isPointInPath(this.b3, x, y));
+          }
         } catch (TypeError) {  // Error when button is held down and game resets until new click
           this.b1Held = false;
           this.b2Held = false;
