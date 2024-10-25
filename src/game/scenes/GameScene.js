@@ -29,6 +29,7 @@ export class GameScene extends Scene {
 
     this.maxLoad = 90;
     this.minLoad = 10;
+    this.maxLoadStep = 30;
 
     this.freqBound = 3;
     this.freqLim = [FREQ_NOM - this.freqBound, FREQ_NOM + this.freqBound]
@@ -38,7 +39,7 @@ export class GameScene extends Scene {
     this.overFreqCount = 0;
     this.timeLim = 10;  // frames outside of bound before game over
 
-    this.calcLevelDuration = (level) => 10; //level * 10;
+    this.calcLevelDuration = (level) => level * 5 + 5;
     this.level = 1;
     this.levelEndTime = this.calcLevelDuration(this.level * 2)
     this.playTime = 0;
@@ -213,11 +214,15 @@ export class GameScene extends Scene {
         this.systemSwing.updateH(this.systemSwing.j -= 0.1)
       }
 
+      if (this.level > 3 && this.maxLoadStep < 50) {
+        this.maxLoadStep += 10;
+      }
+
       if (this.level == 5) {  // Unlocks storage at level 5
         this.storageEnabled = true;
       }
 
-      if (this.level == 10) {  // Unlocks storage at level 5
+      if (this.level == 10) {  // Unlocks pid control at level 10
         this.pidEnabled = true;
       }
 
@@ -239,8 +244,12 @@ export class GameScene extends Scene {
 
     /* Load steps / disturbances */
     if ((time.previous - this.lastStepTime) / 1000 > this.load_update_time) {
-      //let loadStep = 50 * (Math.random() - (this.load / this.maxLoad));
-      let loadStep = 100 * (Math.random() - 0.5);
+      let loadStep = 2 * this.maxLoadStep * (Math.random() - 0.5);
+      // if (this.loadStep > this.maxLoadStep) {
+      //   this.loadStep = this.maxLoadStep;
+      // } else if (this.loadStep < -this.maxLoadStep) {
+      //   this.loadStep = -this.maxLoadStep;
+      // }
       this.load += loadStep;
       if (this.load > this.maxLoad) {
         //this.load = this.maxLoad;
@@ -253,7 +262,7 @@ export class GameScene extends Scene {
       }
       this.lastStepTime = time.previous;
 
-      if (this.pvGenLimits) {
+      if (this.pvGenLimits) {  //TODO: Make limits not impossible to achieve is terms of energy storage. Make it so that the energy defecit over some time interval is less than the available storage capacity * difficult_scaling_factor [0,1].
         this.maxPower = this.genMech.s_rated * (1 - 0.5 * Math.random());
       }
     }
@@ -326,7 +335,16 @@ export class GameScene extends Scene {
       this.b3Held = false;
     }
 
-    if (this.b1Held || isKeyDown("Space")) {
+    if (isKeyDown("Space")) {
+      this.b1Held = true;
+    }
+    if (isKeyDown("ArrowDown")) {
+      this.b2Held = true;
+    } else if (isKeyDown("ArrowUp")) {
+      this.b3Held = true;
+    }
+
+    if (this.b1Held) {
       //alert("Click in path")
       this.mechPowerInput = this.maxPower;
     } else {
@@ -342,9 +360,9 @@ export class GameScene extends Scene {
     let storagePower = 0;
     if (this.storageEnabled) {
       let storageDispatch = 0;
-      if (isKeyDown("ArrowDown") || this.b2Held) {
+      if (this.b2Held) {
         storageDispatch = -this.storage.chargeRate;
-      } else if (isKeyDown("ArrowUp") || this.b3Held) {
+      } else if (this.b3Held) {
         storageDispatch = this.storage.dischargeRate;
       }
 
