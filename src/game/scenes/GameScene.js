@@ -40,7 +40,8 @@ export class GameScene extends Scene {
 
     this.calcLevelDuration = (level) => 10; //level * 10;
     this.level = 1;
-    this.levelEndTime = this.calcLevelDuration(this.level)
+    this.levelEndTime = this.calcLevelDuration(this.level * 2)
+    this.playTime = 0;
 
     let genInertia = 2;  // j
     let genMaxPower = 100;  // MW
@@ -201,7 +202,8 @@ export class GameScene extends Scene {
     this.score += time.secondsPassed / (60 * 60) * this.genMech.states.filter; //Update this to be energy transfered? and add a current power transfering display
 
     /* Difficulty progression */
-    if ((time.previous - time.startTime) / 1000 > this.levelEndTime) {
+    this.playTime += time.secondsPassed;
+    if (this.playTime > this.levelEndTime) {
       this.level += 1;
       this.levelEndTime += this.calcLevelDuration(this.level);
 
