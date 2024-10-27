@@ -41,8 +41,9 @@ export class GameScene extends Scene {
 
     this.calcLevelDuration = (level) => level * 5 + 5;
     this.level = 1;
-    this.levelEndTime = this.calcLevelDuration(this.level * 2)
+    this.levelEndTime = this.calcLevelDuration(this.level * 2);  // Adding in bonus time for level 1
     this.playTime = 0;
+    this.bonusCounter = 0;
 
     let genInertia = 2;  // j
     let genMaxPower = 100;  // MW
@@ -202,8 +203,22 @@ export class GameScene extends Scene {
     /* Score update */
     this.score += time.secondsPassed / (60 * 60) * this.genMech.states.filter; //Update this to be energy transfered? and add a current power transfering display
 
+    /* Level progression bonus */
+    let freqError = Math.abs(this.systemSwing.states.omega - OMEGA_NOM) / (2 * Math.PI)
+    if (freqError < this.freqBound * 0.1) {
+      this.bonusCounter += time.secondsPassed;
+    } else if (this.bonusCounter > 0) {
+      this.bonusCounter -= 2 * time.secondsPassed;
+    }
+
+    let bonusMultiplier = 1;
+    if (this.bonusCounter > 1) {
+      bonusMultiplier = 3;
+    }
+    let bonusTime = time.secondsPassed * bonusMultiplier;
+
     /* Difficulty progression */
-    this.playTime += time.secondsPassed;
+    this.playTime += time.secondsPassed + bonusTime;
     if (this.playTime > this.levelEndTime) {
       this.level += 1;
       this.levelEndTime += this.calcLevelDuration(this.level);
@@ -211,7 +226,7 @@ export class GameScene extends Scene {
       if (this.level == 2) {  // Turns off high-inertia/slow-mode at level 2
         this.systemSwing.updateH(1)
       } else if (this.level > 2 && this.systemSwing.j > 0.5) {  // Decreases inertia each level until j = 0.5
-        this.systemSwing.updateH(this.systemSwing.j -= 0.1)
+        this.systemSwing.updateH(this.systemSwing.j -= 0.05)  // Decreases to 0.5 in 10 levels
       }
 
       if (this.level > 3 && this.maxLoadStep < 50) {
@@ -229,6 +244,12 @@ export class GameScene extends Scene {
       if (this.level == 7) {
         this.pvGenLimits = true;
         this.genBar.lim_display = true;
+      }
+
+      if (this.level == 12) {  // Increase power levels to give higher rewards for harder levels
+        this.genMech.s_rated += 100;
+        this.loadBar.value += 100;
+        this.genBar.value += 100;
       }
     }
 
