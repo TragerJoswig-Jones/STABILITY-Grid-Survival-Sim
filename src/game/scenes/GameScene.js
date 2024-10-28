@@ -52,7 +52,7 @@ export class GameScene extends Scene {
     let storDischargeLim = 50;
     let storChargeLim = 50;
     let storEfficiency = 0.9;
-    this.storageEnabled = false;
+    this.storageEnabled = true;//false;
 
     let kp = 0;
     let ki = 0;
@@ -78,13 +78,29 @@ export class GameScene extends Scene {
       'green', true, false, storCapacity * 1000, storLabel);
 
     // Display buttons
-    this.powerButton = { label: "Power ↑", x: SCREEN_WIDTH * (0.8), y: SCREEN_HEIGHT * (0.75), w: 50, h: 100 };
-    this.storDischargeButton = { label: "Discharge", x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.75), w: 50, h: 50 };
-    this.storChargeButton = { label: "Charge", x: SCREEN_WIDTH * (0.1), y: SCREEN_HEIGHT * (0.85), w: 50, h: 50 };
+    this.buttons = new Map();
+    let powerButton = { label: "Power ↑", x: SCREEN_WIDTH * (0.7), y: SCREEN_HEIGHT * (0.7), w: SCREEN_WIDTH * (0.25), h: SCREEN_HEIGHT * (0.25), r: 10, enabled: true, held: false, path: NaN };
+    let storDischargeButton = { label: "Discharge", x: SCREEN_WIDTH * (0.05), y: SCREEN_HEIGHT * (0.7), w: SCREEN_WIDTH * (0.25), h: SCREEN_HEIGHT * (0.1), r: 10, enabled: this.storageEnabled, held: false, path: NaN };
+    let storChargeButton = { label: "Charge", x: SCREEN_WIDTH * (0.05), y: SCREEN_HEIGHT * (0.85), w: SCREEN_WIDTH * (0.25), h: SCREEN_HEIGHT * (0.1), r: 10, enabled: this.storageEnabled, held: false, path: NaN };
 
-    this.b1Held = false;
-    this.b2Held = false;
-    this.b3Held = false;
+    this.buttons.set('power', powerButton);
+    this.buttons.set('charge', storChargeButton);
+    this.buttons.set('discharge', storDischargeButton)
+
+    let pidPanel = { x: SCREEN_WIDTH * (0.5) - SCREEN_WIDTH * (0.25) / 2, y: SCREEN_HEIGHT * (0.5), w: SCREEN_WIDTH * (0.25), h: powerBarY }
+    let kpPlusPIDButton = { label: "+", x: pidPanel.x + pidPanel.w * 1 / 3, y: pidPanel.y, w: pidPanel.w / 4, h: pidPanel.h / 4, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    let kpMinusPIDButton = { label: "-", x: pidPanel.x + pidPanel.w * 2 / 3, y: pidPanel.y, w: pidPanel.w / 4, h: pidPanel.h / 4, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    // this.kiPlusPID = { label: "+", x: pidPanel.x, y: pidPanel.y, w: pidPanel.w, h: pidPanel.h, r: 10 };
+    // this.kiMinusPID = { label: "-", x: pidPanel.x, y: pidPanel.y, w: pidPanel.w, h: pidPanel.h, r: 10 };
+    // this.kdPlusPID = { label: "+", x: pidPanel.x, y: pidPanel.y, w: pidPanel.w, h: pidPanel.h, r: 10 };
+    // this.kdMinusPID = { label: "-", x: pidPanel.x, y: pidPanel.y, w: pidPanel.w, h: pidPanel.h, r: 10 };
+
+    this.buttons.set('kpp', kpPlusPIDButton);
+    this.buttons.set('kpm', kpMinusPIDButton);
+
+    // this.b1Held = false;
+    // this.b2Held = false;
+    // this.b3Held = false;
 
     // Dynamics entities
     this.systemSwing = new SwingDynamics(genInertia, genMaxPower);
@@ -107,24 +123,26 @@ export class GameScene extends Scene {
     this.lightness = 100;
   };
 
-  drawButton(context, button, buttonHeld) {
+  drawButton(context, button) {
     context.textBaseline = 'middle';
     context.textAlign = 'center';
     context.fillStyle = 'white';
 
-    if (buttonHeld) {
+    if (button.held) {
       context.strokeStyle = 'blue';
     } else {
       context.strokeStyle = `hsl(134 90% ${this.lightness}%)`;
     }
     let b = new Path2D();
-    b.rect(button.x, button.y, button.w, button.h)
+    //b.rect(button.x, button.y, button.w, button.h)
+    b.roundRect(button.x, button.y, button.w, button.h, button.r)
     b.closePath()
     context.stroke(b);
     context.font = 'normal 10px Nunito Sans';
     context.fillText(button.label, button.x + Math.floor(button.w / 2), button.y + Math.floor(button.h / 2));
     return b
   }
+
 
   drawButtons(context) {
     context.lineWidth = 4;
@@ -134,19 +152,12 @@ export class GameScene extends Scene {
     context.textAlign = 'center';
     context.fillStyle = 'white';
 
-    /* Power button */
-    this.b1 = this.drawButton(context, this.powerButton, this.b1Held); //TODO: Make this append to a const button list
-
-
-
-    if (this.storageEnabled) {
-      /* Charge button */
-      this.b2 = this.drawButton(context, this.storChargeButton, this.b2Held); //TODO: Make this append to a const button list
-
-      /* Discharge button */
-      this.b3 = this.drawButton(context, this.storDischargeButton, this.b3Held); //TODO: Make this append to a const button list
+    for (const key of this.buttons.keys()) {
+      if (this.buttons.get(key).enabled) {
+        this.buttons.get(key).path = this.drawButton(context, this.buttons.get(key));
+      }
     }
-    context.strokeStyle = `hsl(134 90% ${this.lightness}%)`;
+    context.strokeStyle = `hsl(134 90% ${this.lightness}%)`;  // reset stroke color
   }
 
   drawBorder(context) {
@@ -330,43 +341,37 @@ export class GameScene extends Scene {
       let x_left = Math.floor((screenWidth - canvasWidth) / 2);
       let y_top = Math.floor((screenHeight - canvasHeight) / 2);
 
-      this.b1Held = false;  // reset button registers to false before checking below
-      this.b2Held = false;
-      this.b3Held = false;
+      for (const key of this.buttons.keys()) this.buttons.get(key).held = false;
 
       for (let i = 0; i < touches.length; i++) {
         let x = Math.floor((touches[i].pageX - x_left) * widthScale);
         let y = Math.floor((touches[i].pageY - y_top) * heightScale);
 
         try {  //TODO: Make this use a for loop over a list of buttons
-          this.b1Held = (this.b1Held || context.isPointInPath(this.b1, x, y));  //TODO: Fix this to not reset a true state once it is determined to be held
-          if (this.storageEnabled) {  //TODO: Add these buttons to the list when storage is enabled
-            this.b2Held = (this.b2Held || context.isPointInPath(this.b2, x, y));
-            this.b3Held = (this.b3Held || context.isPointInPath(this.b3, x, y));
+          for (const key of this.buttons.keys()) {
+            let button = this.buttons.get(key);
+            if (button.enabled) {
+              button.held = (button.held || context.isPointInPath(button.path, x, y));
+            }
           }
         } catch (TypeError) {  // Error when button is held down and game resets until new click
-          this.b1Held = false;
-          this.b2Held = false;
-          this.b3Held = false;
+          for (const key of this.buttons.keys()) this.buttons.get(key).held = false;
         }
       }
     } else {
-      this.b1Held = false;
-      this.b2Held = false;
-      this.b3Held = false;
+      for (const key of this.buttons.keys()) this.buttons.get(key).held = false;
     }
 
-    if (isKeyDown("Space")) {
-      this.b1Held = true;
+    if (isKeyDown("Space")) {  // TODO: Add a mapping from keys to buttons in the button fields?
+      this.buttons.get('power').held = true;
     }
-    if (isKeyDown("ArrowDown")) {
-      this.b2Held = true;
-    } else if (isKeyDown("ArrowUp")) {
-      this.b3Held = true;
+    if (isKeyDown("ArrowDown")) {  // Charging
+      this.buttons.get('charge').held = true;
+    } else if (isKeyDown("ArrowUp")) {  // Discharging
+      this.buttons.get('discharge').held = true;
     }
 
-    if (this.b1Held) {
-      //alert("Click in path")
+    if (this.buttons.get('power').held) {  // TODO: Make this inherent to the button object or add a mapping object to make it more clear
       this.mechPowerInput = this.maxPower;
     } else {
       this.mechPowerInput = 0;
@@ -381,9 +386,9 @@ export class GameScene extends Scene {
     let storagePower = 0;
     if (this.storageEnabled) {
       let storageDispatch = 0;
-      if (this.b2Held) {
+      if (this.buttons.get('charge').held) {
         storageDispatch = -this.storage.chargeRate;
-      } else if (this.b3Held) {
+      } else if (this.buttons.get('discharge').held) {
         storageDispatch = this.storage.dischargeRate;
       }
 
