@@ -45,19 +45,19 @@ export class GameScene extends Scene {
     this.playTime = 0;
     this.bonusCounter = 0;
 
-    let genInertia = 2;  // j
+    let genInertia = 5;  // H (p.u.)
     let genMaxPower = 100;  // MW
 
     let storCapacity = 0.1;
     let storDischargeLim = 50;
     let storChargeLim = 50;
     let storEfficiency = 0.9;
-    this.storageEnabled = true;//false;
+    this.storageEnabled = false;
 
     let kp = 0;
     let ki = 0;
     let kd = 0;
-    this.pidEnabled = true;//false;
+    this.pidEnabled = false;
 
     this.pvGenLimits = false;
 
@@ -101,10 +101,7 @@ export class GameScene extends Scene {
     this.buttons.set('kim', kiMinusPIDButton);
     this.buttons.set('kdp', kdPlusPIDButton);
     this.buttons.set('kdm', kdMinusPIDButton);
-
-    // this.b1Held = false;
-    // this.b2Held = false;
-    // this.b3Held = false;
+    this.pidPanel = pidPanel
 
     // Dynamics entities
     this.systemSwing = new SwingDynamics(genInertia, genMaxPower);
@@ -191,6 +188,14 @@ export class GameScene extends Scene {
     context.font = 'normal 15px Nunito Sans';
     context.fillText('Level: ' + this.level.toFixed(0), SCREEN_WIDTH * 9 / 10, 17 + SCREEN_HEIGHT / 10);
 
+    if (this.pidEnabled) {
+      context.textAlign = 'right';
+      context.font = 'normal 12px Nunito Sans';
+      context.fillText('kp: ' + this.pidController.kp.toFixed(1), this.buttons.get('kpp').x - 10, this.buttons.get('kpp').y + 15);
+      context.fillText('ki: ' + this.pidController.ki.toFixed(1), this.buttons.get('kip').x - 10, this.buttons.get('kip').y + 15);
+      context.fillText('kd: ' + this.pidController.kd.toFixed(1), this.buttons.get('kdp').x - 10, this.buttons.get('kdp').y + 15);
+    }
+
     //TODO: add display for CO2 emissions in Mt (Megatonnes) This will be an end game goal to make this zero?
   }
 
@@ -239,12 +244,13 @@ export class GameScene extends Scene {
       this.levelEndTime += this.calcLevelDuration(this.level);
 
       if (this.level == 2) {  // Turns off high-inertia/slow-mode at level 2
-        this.systemSwing.updateH(1)
-      } else if (this.level > 2 && this.systemSwing.j > 0.5) {  // Decreases inertia each level until j = 0.5
-        this.systemSwing.updateH(this.systemSwing.j -= 0.05)  // Decreases to 0.5 in 10 levels
+        this.systemSwing.updateH(3)
+      } else if (this.level > 2 && this.systemSwing.h > 1) {  // Decreases inertia each level until j = 0.5
+        this.systemSwing.h -= -0.1;  // Decreases to 1 in 10 levels
+        //this.systemSwing.updateH(this.systemSwing.j)  // Decreases to 0.5 in 10 levels
       }
 
-      if (this.level > 3 && this.maxLoadStep < 50) {
+      if (this.level > 5 && this.maxLoadStep < 50) {
         this.maxLoadStep += 10;
       }
 
@@ -252,19 +258,33 @@ export class GameScene extends Scene {
         this.storageEnabled = true;
       }
 
-      if (this.level == 10) {  // Unlocks pid control at level 10
+      if (this.level == 15) {  // Unlocks pid control at level 10
         this.pidEnabled = true;
       }
 
-      if (this.level == 7) {
+      if (this.level == 10) {
         this.pvGenLimits = true;
         this.genBar.lim_display = true;
       }
 
-      if (this.level == 12) {  // Increase power levels to give higher rewards for harder levels
-        this.genMech.s_rated += 100;
-        this.loadBar.value += 100;
-        this.genBar.value += 100;
+      if (this.level == 7) {  // Increase power levels to give higher rewards for harder levels
+        let powerIncrease = 100;
+        let percentIncrease = (1 + powerIncrease / this.genMech.s_rated);
+
+        this.systemSwing.s_rated += powerIncrease;
+        //this.systemSwing.h = this.systemSwing.h * percentIncrease  // Increase inertia to keep the difficulty the same
+
+        this.genMech.omega_filt = this.genMech.omega_filt * percentIncrease;
+        this.genMech.s_rated += powerIncrease;  //TODO: Make a single variable for power level and update all of these to match it.
+        this.genMech.max_input += powerIncrease;
+        this.maxPower += powerIncrease;
+
+        this.loadBar.value += powerIncrease;
+        this.genBar.value += powerIncrease;
+
+        this.maxLoadStep = this.maxLoadStep * percentIncrease;
+        this.maxLoad = this.maxLoad * percentIncrease;
+        this.minLoad = this.minLoad * percentIncrease;
       }
     }
 
@@ -302,7 +322,7 @@ export class GameScene extends Scene {
         this.maxPower = this.genMech.s_rated * (1 - 0.5 * Math.random());
       }
     }
-    this.loadBar.update(this.load / S_BASE);
+    this.loadBar.update(this.load / this.loadBar.value);
     this.genMech.max_input = this.maxPower;
 
     let touches = [...getTouches()];  // Shallow copy of the array so that we can append a click location
@@ -378,9 +398,19 @@ export class GameScene extends Scene {
     }
 
     if (this.buttons.get('kpp').held) {
-      this.pidController.kp += 1;
+      this.pidController.kp += 0.1;
     } else if (this.buttons.get('kpm').held) {
-      this.pidController.kp -= 1;
+      this.pidController.kp -= 0.1;
+    }
+    if (this.buttons.get('kip').held) {
+      this.pidController.ki += 0.1;
+    } else if (this.buttons.get('kim').held) {
+      this.pidController.ki -= 0.1;
+    }
+    if (this.buttons.get('kdp').held) {
+      this.pidController.kd += 0.1;
+    } else if (this.buttons.get('kdm').held) {
+      this.pidController.kd -= 0.1;
     }
     this.pidController.update(time, this.systemSwing.states.omega);
     let mechPowerCtrl = this.pidController.control();
@@ -407,7 +437,7 @@ export class GameScene extends Scene {
     }
 
     this.genBar.max_percent = this.maxPower / this.genMech.s_rated;
-    this.genBar.update(this.genMech.states.filter / S_BASE);
+    this.genBar.update(this.genMech.states.filter / this.genMech.s_rated);
     let genPower = this.genMech.states.filter
 
     let net_power = genPower - this.load + storagePower;
