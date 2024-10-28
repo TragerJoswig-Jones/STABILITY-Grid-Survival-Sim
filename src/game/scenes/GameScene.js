@@ -57,7 +57,7 @@ export class GameScene extends Scene {
     let kp = 0;
     let ki = 0;
     let kd = 0;
-    this.pidEnabled = false;
+    this.pidEnabled = true;//false;
 
     this.pvGenLimits = false;
 
@@ -87,16 +87,20 @@ export class GameScene extends Scene {
     this.buttons.set('charge', storChargeButton);
     this.buttons.set('discharge', storDischargeButton)
 
-    let pidPanel = { x: SCREEN_WIDTH * (0.5) - SCREEN_WIDTH * (0.25) / 2, y: SCREEN_HEIGHT * (0.5), w: SCREEN_WIDTH * (0.25), h: powerBarY }
-    let kpPlusPIDButton = { label: "+", x: pidPanel.x + pidPanel.w * 1 / 3, y: pidPanel.y, w: pidPanel.w / 4, h: pidPanel.h / 4, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
-    let kpMinusPIDButton = { label: "-", x: pidPanel.x + pidPanel.w * 2 / 3, y: pidPanel.y, w: pidPanel.w / 4, h: pidPanel.h / 4, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
-    // this.kiPlusPID = { label: "+", x: pidPanel.x, y: pidPanel.y, w: pidPanel.w, h: pidPanel.h, r: 10 };
-    // this.kiMinusPID = { label: "-", x: pidPanel.x, y: pidPanel.y, w: pidPanel.w, h: pidPanel.h, r: 10 };
-    // this.kdPlusPID = { label: "+", x: pidPanel.x, y: pidPanel.y, w: pidPanel.w, h: pidPanel.h, r: 10 };
-    // this.kdMinusPID = { label: "-", x: pidPanel.x, y: pidPanel.y, w: pidPanel.w, h: pidPanel.h, r: 10 };
+    let pidPanel = { x: SCREEN_WIDTH * (0.5) - SCREEN_WIDTH * (0.25) / 2, y: powerBarY, w: SCREEN_WIDTH * (0.25), h: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }
+    let kpPlusPIDButton = { label: "+", x: pidPanel.x + pidPanel.w * 1 / 3, y: pidPanel.y, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    let kpMinusPIDButton = { label: "-", x: pidPanel.x + pidPanel.w * 2 / 3, y: pidPanel.y, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    let kiPlusPIDButton = { label: "+", x: pidPanel.x + pidPanel.w * 1 / 3, y: pidPanel.y + pidPanel.h * 3 / 8, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    let kiMinusPIDButton = { label: "-", x: pidPanel.x + pidPanel.w * 2 / 3, y: pidPanel.y + pidPanel.h * 3 / 8, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    let kdPlusPIDButton = { label: "+", x: pidPanel.x + pidPanel.w * 1 / 3, y: pidPanel.y + pidPanel.h * 6 / 8, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    let kdMinusPIDButton = { label: "-", x: pidPanel.x + pidPanel.w * 2 / 3, y: pidPanel.y + pidPanel.h * 6 / 8, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
 
     this.buttons.set('kpp', kpPlusPIDButton);
     this.buttons.set('kpm', kpMinusPIDButton);
+    this.buttons.set('kip', kiPlusPIDButton);
+    this.buttons.set('kim', kiMinusPIDButton);
+    this.buttons.set('kdp', kdPlusPIDButton);
+    this.buttons.set('kdm', kdMinusPIDButton);
 
     // this.b1Held = false;
     // this.b2Held = false;
@@ -301,10 +305,6 @@ export class GameScene extends Scene {
     this.loadBar.update(this.load / S_BASE);
     this.genMech.max_input = this.maxPower;
 
-    this.pidController.update(time, this.systemSwing.states.omega);
-    let mechPowerCtrl = this.pidController.control();
-    this.genMech.update(time, this.mechPowerInput + mechPowerCtrl);  //TODO: Add in hard limits on the power from genMech in case I switch this to not be a lowpass filter in the future or add in temporary power output limits.
-
     let touches = [...getTouches()];  // Shallow copy of the array so that we can append a click location
 
     let clickLocation = whereClickLocation();
@@ -376,6 +376,15 @@ export class GameScene extends Scene {
     } else {
       this.mechPowerInput = 0;
     }
+
+    if (this.buttons.get('kpp').held) {
+      this.pidController.kp += 1;
+    } else if (this.buttons.get('kpm').held) {
+      this.pidController.kp -= 1;
+    }
+    this.pidController.update(time, this.systemSwing.states.omega);
+    let mechPowerCtrl = this.pidController.control();
+    this.genMech.update(time, this.mechPowerInput + mechPowerCtrl);  //TODO: Add in hard limits on the power from genMech in case I switch this to not be a lowpass filter in the future or add in temporary power output limits.
 
     // if (isKeyDown("Space")) {
     //   this.mechPowerInput = this.maxPower;
