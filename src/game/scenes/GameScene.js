@@ -244,7 +244,7 @@ export class GameScene extends Scene {
       this.levelEndTime += this.calcLevelDuration(this.level);
 
       if (this.level == 2) {  // Turns off high-inertia/slow-mode at level 2
-        this.systemSwing.updateH(3)
+        this.systemSwing.h = 3;
       } else if (this.level > 2 && this.systemSwing.h > 1) {  // Decreases inertia each level until j = 0.5
         this.systemSwing.h -= -0.1;  // Decreases to 1 in 10 levels
         //this.systemSwing.updateH(this.systemSwing.j)  // Decreases to 0.5 in 10 levels
@@ -256,10 +256,18 @@ export class GameScene extends Scene {
 
       if (this.level == 5) {  // Unlocks storage at level 5
         this.storageEnabled = true;
+        this.buttons.get("charge").enabled = true;
+        this.buttons.get("discharge").enabled = true;
       }
 
       if (this.level == 15) {  // Unlocks pid control at level 10
         this.pidEnabled = true;
+        this.buttons.get('kpp').enabled = true;
+        this.buttons.get('kpm').enabled = true;
+        this.buttons.get('kip').enabled = true;
+        this.buttons.get('kim').enabled = true;
+        this.buttons.get('kdp').enabled = true;
+        this.buttons.get('kdm').enabled = true;
       }
 
       if (this.level == 10) {

@@ -1,4 +1,4 @@
-import { pollGamepads, registerGamepadEvents, registerKeyEvents, registerClickEvents, resetClickLocation, registerTouchEvents, resetOngoingTouches } from './inputHandler.js';
+import { pollGamepads, registerGamepadEvents, registerKeyEvents, registerClickEvents, resetClickLocation, registerTouchEvents, resetOngoingTouches, resetHeldButtons } from './inputHandler.js';
 import { getContext } from './context.js';
 import { Camera } from './Camera.js';
 import { GameScene } from 'game/scenes/GameScene.js';
@@ -65,6 +65,7 @@ export class Game {
 			secondsPassed: 0,
 			startTime: document.timeline.currentTime
 		};
+		resetHeldButtons();
 		resetClickLocation();
 		resetOngoingTouches();
 		this.scene = new GameScene(this.frameTime, this.camera)
@@ -76,7 +77,7 @@ export class Game {
 		registerClickEvents();
 		registerTouchEvents();
 
-		alert("Don't let the frequency (blue line) go beyond the limits (red lines). Use the power button / space bar to increase power output (blue bar) to be balanced with the load (red bar). Click to start!")
+		alert("In this game, you will balance power generation with the fluctuating power demand to maintain the grid frequency. Don't let the frequency (blue line) go beyond the limits (red lines). Press the power button (space bar) to increase power output (blue bar) to match the load (red bar) to keep the frequency steady. Click to start!")
 		window.requestAnimationFrame(this.frame);
 	}
 }

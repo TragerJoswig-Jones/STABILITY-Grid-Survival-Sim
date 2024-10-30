@@ -151,6 +151,11 @@ export function registerClickEvents() {
 	window.addEventListener('mouseup', handleUnclick);
 }
 
+export function resetHeldButtons() {
+	heldKeys.clear();
+	pressedKeys.clear();
+}
+
 export function resetOngoingTouches() {
 	ongoingTouches.splice(0, ongoingTouches.length)
 }
