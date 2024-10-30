@@ -21,10 +21,9 @@ export class GameScene extends Scene {
 
     // Variable init
     this.mechPowerInput = 0;
-    this.load = 50;
-    this.loadStep = 0;
     this.score = 0;
     this.iMinute = Math.floor(LOAD_CURVE.length / 4);  // minute index for load curve: Starts at 6am
+    this.loadStep = 0;
 
     // Gameplay parameters
     this.sNominal = S_BASE;
@@ -36,13 +35,12 @@ export class GameScene extends Scene {
     this.genLimUpdateTime = 5;
     this.lastgenLimStep = document.timeline.currentTime; // TODO: Or set to 0? Unsure how to handle game resets
 
-
     this.maxloadCurve = 0.8;  // in per unit
     this.minloadCurve = 0.2;
-
-    this.maxLoad = 90;
+    this.maxLoad = 90;  // TODO: Change this to per unit
     this.minLoad = 10;
     this.maxLoadStep = 0;
+    this.load = ((this.maxloadCurve - this.minloadCurve) * LOAD_CURVE[this.iMinute % LOAD_CURVE.length] + this.minloadCurve) * this.sNominal;
 
     this.freqBound = 3;
     this.freqLim = [FREQ_NOM - this.freqBound, FREQ_NOM + this.freqBound]
@@ -52,12 +50,15 @@ export class GameScene extends Scene {
     this.overFreqCount = 0;
     this.timeLim = 10;  // frames outside of bound before game over
 
-    this.calcLevelDuration = (level) => level * 5 + 5;
+    this.calcLevelDuration = (level) => level * 10 + 10;
     this.level = 1;
     this.levelEndTime = this.calcLevelDuration(this.level * 2);  // Adding in bonus time for level 1
     this.playTime = 0;
     this.bonusCounter = 0;
+    this.bonusMultiplier = 5;
+    this.minTimeForBonus = 1;
 
+    let omegaFilt = 0.3;  // Gen Low-pass filter frequency (rad/s)
     let genInertia = 5;  // H (p.u.)
     let genMaxPower = 100;  // MW
 
@@ -121,7 +122,7 @@ export class GameScene extends Scene {
 
     // Dynamics entities
     this.systemSwing = new SwingDynamics(genInertia, genMaxPower);
-    this.genMech = new LowPassFilter(0.5, 100, this.load);
+    this.genMech = new LowPassFilter(omegaFilt, this.sNominal, this.load);
     this.maxPower = this.genMech.s_rated  // The maximum available mechanical power
 
     this.storage = new Storage(storCapacity, storDischargeLim, storChargeLim, storEfficiency)
@@ -247,14 +248,14 @@ export class GameScene extends Scene {
       this.bonusCounter -= 2 * time.secondsPassed;
     }
 
-    let bonusMultiplier = 1;
-    if (this.bonusCounter > 1) {
-      bonusMultiplier = 3;
+    let timeMultiplier = 1;
+    if (this.bonusCounter > this.minTimeForBonus) {
+      timeMultiplier = this.bonusMultiplier;
     }
-    let bonusTime = time.secondsPassed * bonusMultiplier;
+    let bonus = time.secondsPassed * timeMultiplier;
 
     /* Difficulty progression */
-    this.playTime += time.secondsPassed + bonusTime;
+    this.playTime += time.secondsPassed + bonus;
     if (this.playTime > this.levelEndTime) {
       this.level += 1;
       this.levelEndTime += this.calcLevelDuration(this.level);
@@ -264,6 +265,10 @@ export class GameScene extends Scene {
       } else if (this.level > 2 && this.systemSwing.h > 3) {  // Decreases inertia each level until j = 0.5
         this.systemSwing.h -= 0.1;  // Decreases to 1 in 10 levels
         //this.systemSwing.updateH(this.systemSwing.j)  // Decreases to 0.5 in 10 levels
+      }
+
+      if (this.level > 1 && this.genMech.omega_filt < 0.5) {
+        this.genMech.omega_filt += 0.05  // Increase filter frequency to quicken response
       }
 
       if (this.level > 5 && this.maxLoadStep < 50) {
