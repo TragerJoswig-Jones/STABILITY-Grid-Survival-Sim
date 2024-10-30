@@ -9,6 +9,7 @@ import { PIDControl } from 'game/entities/PIDControl.js';
 import { Storage } from 'game/entities/Storage.js';
 import { isKeyPressed, isKeyDown, whereClickLocation, getTouches } from 'engine/inputHandler.js';
 import { Control } from 'game/constants/controls.js';
+import { LOAD_CURVE } from 'game/constants/load.js';
 
 export class GameScene extends Scene {
   music = document.getElementById('bgm');
@@ -21,15 +22,27 @@ export class GameScene extends Scene {
     // Variable init
     this.mechPowerInput = 0;
     this.load = 50;
+    this.loadStep = 0;
     this.score = 0;
+    this.iMinute = Math.floor(LOAD_CURVE.length / 4);  // minute index for load curve: Starts at 6am
 
     // Gameplay parameters
-    this.load_update_time = 5;
+    this.sNominal = S_BASE;
+
+    this.loadUpdateTime = 10;
     this.lastStepTime = document.timeline.currentTime; // TODO: Or set to 0? Unsure how to handle game resets
+    this.minuteUpdateTime = 1 / 60;  // 1 second in game corresponds to 1 hour of load data.
+    this.lastMinuteStep = document.timeline.currentTime;
+    this.genLimUpdateTime = 5;
+    this.lastgenLimStep = document.timeline.currentTime; // TODO: Or set to 0? Unsure how to handle game resets
+
+
+    this.maxloadCurve = 0.8;  // in per unit
+    this.minloadCurve = 0.2;
 
     this.maxLoad = 90;
     this.minLoad = 10;
-    this.maxLoadStep = 30;
+    this.maxLoadStep = 0;
 
     this.freqBound = 3;
     this.freqLim = [FREQ_NOM - this.freqBound, FREQ_NOM + this.freqBound]
@@ -48,9 +61,9 @@ export class GameScene extends Scene {
     let genInertia = 5;  // H (p.u.)
     let genMaxPower = 100;  // MW
 
-    let storCapacity = 0.1;
-    let storDischargeLim = 50;
-    let storChargeLim = 50;
+    let storCapacity = 0.1;  // MW
+    let storDischargeLim = 50;  // MW
+    let storChargeLim = 50;  // MW
     let storEfficiency = 0.9;
     this.storageEnabled = false;
 
@@ -59,7 +72,10 @@ export class GameScene extends Scene {
     let kd = 0;
     this.pidEnabled = false;
 
-    this.pvGenLimits = false;
+    this.genLimitsEnabled = false;
+    this.maxGenLimit = 0.5;  // p.u.
+
+    this.pvGenLimitsEnabled = false;
 
     // Display parameters
     let plotBound = 5;
@@ -68,8 +84,8 @@ export class GameScene extends Scene {
     let plotY = SCREEN_HEIGHT * (0.15);
 
     // Display entities
-    this.genBar = new PowerBar({ x: SCREEN_WIDTH * (0.7), y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'blue', true, false, 100, { name: 'Power', unit: 'MW' }, { label: "Generation", leftSide: false, fontSize: 15 });
-    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.3) - SCREEN_WIDTH / 10, y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red', true, false, 100, { name: 'Power', unit: 'MW' }, { label: "Load", leftSide: true, fontSize: 15 });
+    this.genBar = new PowerBar({ x: SCREEN_WIDTH * (0.7), y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'blue', true, false, this.sNominal, { name: 'Power', unit: 'MW' }, { label: "Generation", leftSide: false, fontSize: 15 });
+    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.3) - SCREEN_WIDTH / 10, y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red', true, false, this.sNominal, { name: 'Power', unit: 'MW' }, { label: "Load", leftSide: true, fontSize: 15 });
     this.plot = new Plot({ x: SCREEN_WIDTH * (0.1), y: plotY }, { width: SCREEN_WIDTH * 0.8, height: SCREEN_HEIGHT * 0.2 }, 1000, plotBounds, 'blue', FREQ_NOM, this.freqLim, "time (s)", "frequency (Hz)", 12)
 
     let storBarY = powerBarY + SCREEN_HEIGHT * BAR_HEIGHT_SCALE + 40;
@@ -244,14 +260,18 @@ export class GameScene extends Scene {
       this.levelEndTime += this.calcLevelDuration(this.level);
 
       if (this.level == 2) {  // Turns off high-inertia/slow-mode at level 2
-        this.systemSwing.h = 3;
-      } else if (this.level > 2 && this.systemSwing.h > 1) {  // Decreases inertia each level until j = 0.5
-        this.systemSwing.h -= -0.1;  // Decreases to 1 in 10 levels
+        this.systemSwing.h = 5;
+      } else if (this.level > 2 && this.systemSwing.h > 3) {  // Decreases inertia each level until j = 0.5
+        this.systemSwing.h -= 0.1;  // Decreases to 1 in 10 levels
         //this.systemSwing.updateH(this.systemSwing.j)  // Decreases to 0.5 in 10 levels
       }
 
       if (this.level > 5 && this.maxLoadStep < 50) {
-        this.maxLoadStep += 10;
+        this.maxLoadStep += 5;
+      }
+
+      if (this.level > 5 && this.loadUpdateTime > 5) {
+        this.loadUpdateTime -= 1;
       }
 
       if (this.level == 5) {  // Unlocks storage at level 5
@@ -270,13 +290,15 @@ export class GameScene extends Scene {
         this.buttons.get('kdm').enabled = true;
       }
 
-      if (this.level == 10) {
-        this.pvGenLimits = true;
+      if (this.level == 12) {
+        this.genLimitsEnabled = true;
         this.genBar.lim_display = true;
       }
 
-      if (this.level == 7) {  // Increase power levels to give higher rewards for harder levels
+      if (this.level == 10) {  // Increase power levels to give higher rewards for harder levels
+        //TODO: Make this a function or functions of these objects to change their sRated values
         let powerIncrease = 100;
+        this.sNominal = this.sNominal + powerIncrease;
         let percentIncrease = (1 + powerIncrease / this.genMech.s_rated);
 
         this.systemSwing.s_rated += powerIncrease;
@@ -294,6 +316,17 @@ export class GameScene extends Scene {
         this.maxLoad = this.maxLoad * percentIncrease;
         this.minLoad = this.minLoad * percentIncrease;
       }
+
+      if (this.level == 12) {  // Increase size of the storage to handle longer durations of power shortfall
+        let scalePercent = 2;
+        this.storage.maxSOC *= scalePercent;
+        this.storage.states.soc /= scalePercent;
+
+        this.storage.dischargeRate *= scalePercent;
+        this.storage.chargeRate *= scalePercent;
+
+        this.storSOCBar.value *= scalePercent;
+      }
     }
 
     /* Game loss counter */
@@ -307,29 +340,39 @@ export class GameScene extends Scene {
     }
 
     /* Load steps / disturbances */
-    if ((time.previous - this.lastStepTime) / 1000 > this.load_update_time) {
-      let loadStep = 2 * this.maxLoadStep * (Math.random() - 0.5);
-      // if (this.loadStep > this.maxLoadStep) {
-      //   this.loadStep = this.maxLoadStep;
-      // } else if (this.loadStep < -this.maxLoadStep) {
-      //   this.loadStep = -this.maxLoadStep;
-      // }
-      this.load += loadStep;
-      if (this.load > this.maxLoad) {
-        //this.load = this.maxLoad;
-        //this.load -= 1 * loadStep;
-        this.load = (this.maxLoad - this.minLoad) / 2;
-      } else if (this.load < this.minLoad) {
-        //this.load = this.minLoad
-        //this.load -= 1 * loadStep;
-        this.load = (this.maxLoad - this.minLoad) / 2;
-      }
+    if ((time.previous - this.lastMinuteStep) / 1000 > this.minuteUpdateTime) {
+      this.lastMinuteStep = time.previous;
+      this.iMinute += 1;
+    }
+    this.load = ((this.maxloadCurve - this.minloadCurve) * LOAD_CURVE[this.iMinute % LOAD_CURVE.length] + this.minloadCurve) * this.sNominal;
+    if ((time.previous - this.lastStepTime) / 1000 > this.loadUpdateTime) {
       this.lastStepTime = time.previous;
 
-      if (this.pvGenLimits) {  //TODO: Make limits not impossible to achieve is terms of energy storage. Make it so that the energy defecit over some time interval is less than the available storage capacity * difficult_scaling_factor [0,1].
-        this.maxPower = this.genMech.s_rated * (1 - 0.5 * Math.random());
+      if (this.loadStep != 0) {
+        this.loadStep = 0;
+      } else {
+        this.loadStep = 2 * this.maxLoadStep * (Math.random() - 0.5);
+      }
+
+
+    }
+    if ((time.previous - this.lastgenLimStep) / 1000 > this.genLimUpdateTime) {
+      this.lastgenLimStep = time.previous;
+
+      if (this.genLimitsEnabled) {  //TODO: Make limits not impossible to achieve is terms of energy storage. Make it so that the energy defecit over some time interval is less than the available storage capacity * difficult_scaling_factor [0,1].
+        this.maxPower = this.genMech.s_rated * (1 - (this.maxGenLimit * Math.random()));
       }
     }
+
+    this.load += this.loadStep;
+    if (this.load > this.maxLoad) {
+      this.load = this.maxLoad;
+      //this.load = (this.maxLoad - this.minLoad) / 2;
+    } else if (this.load < this.minLoad) {
+      this.load = this.minLoad
+      //this.load = (this.maxLoad - this.minLoad) / 2;
+    }
+
     this.loadBar.update(this.load / this.loadBar.value);
     this.genMech.max_input = this.maxPower;
 
