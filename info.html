@@ -1,0 +1,384 @@
+<!--
+ MIT License
+
+Copyright (c) 2019-2023 Pico
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="color-scheme" content="light dark" />
+	<title>STABILITY: Grid Sim Info</title>
+	<meta name="description" content="Informational content related to the STABILITY: Grid Sim game." />
+
+	<!-- Pico.css -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css" />
+	<!-- <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+	</script> -->
+</head>
+
+<body>
+	<!-- Header -->
+	<header class="container">
+		<hgroup>
+			<h1>STABILITY: Grid Survival Sim Info</h1>
+			<p>An electrical grid frequency balancing game.</p>
+		</hgroup>
+		<div class="grid">
+			<button class="secondary" onclick="window.location.href='index.html'">Play STABILITY!</button>
+		</div>
+	</header>
+	<!-- ./ Header -->
+
+	<!-- Main -->
+	<main class="container">
+
+		<section id="howtoplay">
+			<h2>How to play</h2>
+			<p>
+				In this game, you will <b>balance power generation with the fluctuating power demand to maintain the
+					grid frequency</b>. Don't let the frequency (blue line) go beyond the limits (red lines) or the game will end!
+				Press the power button (space bar on a keyboard) to increase power generated (blue bar) to match the load (red
+				bar) to keep the frequency steady. <b>The goal of the game is to generate as much energy as you can</b> without
+				letting the frequency go beyond the limits!
+
+				<img src="images/SGSS_UI_Diagram.png" alt="Diagram of the user interface">
+
+				As the game progresses you will unlock more resources and the grid conditions will change:
+			</p>
+			<!-- Lists-->
+
+			<u>Level progression</u>
+			<ul>
+				<li>Level 2: The inertia of the grid begins to decrease. </li>
+				<li>Level 5: Storage is unlocked. Use the charge (down arrow) and discharge (up arrow) buttons to dispatch the
+					storage!</li>
+				<li>Level 10: Generation limits are introduced.</li>
+				<li>Level 15: A proportional-integral-derivative (PID) controller for the generator is introduced and can be
+					tuned. </li>
+			</ul>
+			<!-- Preview -->
+			<section id="background">
+				<h2>Background information</h2>
+				<!-- <p>
+					Below is information about the electrical power grid.
+				</p> -->
+
+				<section id="grid">
+					<h3>What is an <abbr title="alternating-current" data-tooltip="alternating current">AC</abbr> electrical power
+						grid?</h3>
+					<p>
+						An electrical power system is a network of components that generate, transmit, and consume electric power.
+						We
+						common refer to the large-scale power system that supplies power to our homes as <em>the grid</em>. The grid
+						is
+						an
+						alternating current (AC) system in which the voltage and currents within that system oscillate between
+						negative
+						and positive values. The rate at which these signals oscillate is refered to as their frequency.
+					</p>
+				</section>
+
+				<section id="power-balance">
+					<h3>What does it mean to balance the powers in the system?</h3>
+					<p>
+						In the power grid the electrical power that we are consuming is being produced at nearly the exact same
+						time that we are consuming it. The electrical power being used to illuminate the lights above you was
+						generated at some power plant and traveled through the transmission lines at nearly the speed of light to
+						get to get there. Typically, in large scale power systems we do not store any significant amount of
+						energy within the system. Because of this the amount of power that we put into the system has to be equal
+						to the amount of power that we take out of the system. When the input and output power are equal, we say
+						that the powers are balanced.
+					</p>
+				</section>
+
+				<section id="frequency">
+					<h3>Why do we need to manage the frequency?</h3>
+					<p>
+						In a power grid we want to maintain this frequency near to the nominal value. Everything in the grid, from
+						the
+						generators to the loads, is designed to operate at the nominal frequency and if the frequency deviates too
+						far
+						from this value the system can become unstable and the components within the system can become damaged. If
+						the
+						frequency deviates to far from the nominal value we have to shut the system down resulting in a
+						complete interruption of power to consumers, typically refered to as a blackout.
+					</p>
+				</section>
+
+				<section id="frequency-power">
+					<h3>How is frequency related to power balance?</h3>
+					<p>
+						In a conventional power system, large mechanical synchronous generators are used to produce electrical
+						power. These generators convert potential energy from resources such as coal, natural gas and hydropower
+						into electrical power. This conversion is done by first converting the energy into mechanical energy that
+						can push against turbine blades which are connected to and spin a rotor shaft. As the generator's rotor
+						spins, it produces a magnetic field which induces an electrical current in wires which suround the rotor.
+						This electrical current oscillates at a frequency that is proportional to the rate that the rotor spins at.
+						This coupling between the mechanical rotation and electrical oscillations can be used to help us determine
+						if the power input and power output is balanced. If the mechanical power input is greater than the
+						electrical power output, then than the rotational frequency of the rotor will increase as more energy is
+						stored as rotational energy. If the mechanical power input is less than the electrical power output, then
+						the rate at which the rotor spins will decrease as energy is taken from it. Since the electrical frequency
+						is proportional to the rotational frequency, we know that our system is balanced if the electrical frequency
+						does not change.
+					</p>
+				</section>
+
+				<section id="frequency-control">
+					<h3>How do we control the frequency?</h3>
+					<p>
+						When the supplied power and the consumed power are not equal this means that the amount of energy stored
+						within the system must be changing to balance out this difference. In a conventional power system this
+						energy is stored in the form of the rotational energy of the generators rotors. We can control the frequency
+						by increasing or decreasing the power supplied to the generator. If the power supplied by the generator is
+						greater than the power being consumed on the electrical side, then the frequency will increase. If the power
+						supplied by the generator is less than the electrical power consumed, then the frequency will decrease.
+					</p>
+				</section>
+
+				<section id="energy">
+					<h3>What is the difference between power and energy?</h3>
+					<p>
+						Energy is the ability to do work.
+						Power is how much energy is being transfered at any one time.
+						An object that has energy can transfer that energy to another object, and the rate of this transfer of
+						energy is power.
+						In this game the score is the total amount of energy that was delivered to the load.
+						This energy score is calculated by continuously adding up the amount of power the load is consuming
+						over
+						time.
+					</p>
+					<!-- <div>
+							<math display=" block">
+								<mi>
+									<mi>E</mi>
+									<mo>(</mo>
+									<mi>t</mi>
+									<mo>)</mo>
+									<mo>&#xA0;</mo>
+									<mo>=</mo>
+									<munderover accent='false' accentunder='false'>
+										<mo>&#x222b;</mo>
+										<mn>0</mn>
+										<mi>t</mi>
+									</munderover>
+									<mi>P</mi>
+									<mo>(</mo>
+									<mi>t</mi>
+									<mo>)</mo>
+									<mi lspace=" 0.2em" rspace="0">d</mi>
+									<mi>t</mi>
+							</math>
+						</div> -->
+
+
+				</section>
+
+				<!-- Inline text elements-->
+				<h3>Inline text elements</h3>
+				<!-- Blockquote-->
+				<blockquote>
+					"Maecenas vehicula metus tellus, vitae congue turpis hendrerit non. Nam at dui sit amet
+					ipsum cursus ornare."
+					<footer>
+						<cite>- Phasellus eget lacinia</cite>
+					</footer>
+				</blockquote>
+
+				<div class="grid">
+					<p><a href="#" onclick="event.preventDefault()">Primary link</a></p>
+					<p>
+						<a href="#" class="secondary" onclick="event.preventDefault()">Secondary link</a>
+					</p>
+					<p>
+						<a href="#" class="contrast" onclick="event.preventDefault()">Contrast link</a>
+					</p>
+				</div>
+				<div class="grid">
+					<p><strong>Bold</strong></p>
+					<p><em>Italic</em></p>
+					<p><u>Underline</u></p>
+				</div>
+				<div class="grid">
+					<p><del>Deleted</del></p>
+					<p><ins>Inserted</ins></p>
+					<p><s>Strikethrough</s></p>
+				</div>
+				<div class="grid">
+					<p><small>Small </small></p>
+					<p>Text <sub>Sub</sub></p>
+					<p>Text <sup>Sup</sup></p>
+				</div>
+				<div class="grid">
+					<p>
+						<abbr title="Abbreviation" data-tooltip="Abbreviation">Abbr.</abbr>
+					</p>
+					<p><kbd>Kbd</kbd></p>
+					<p><mark>Highlighted</mark></p>
+				</div>
+
+			</section>
+			<!-- ./ Typography-->
+
+			<!-- Buttons-->
+			<section id="buttons">
+				<h2>Buttons</h2>
+				<p class="grid">
+					<button>Primary</button>
+					<button class="secondary" onclick="window.location.href='index.html'">Secondary</button>
+					<button class="contrast">Contrast</button>
+				</p>
+				<p class="grid">
+					<button class="outline">Primary outline</button>
+					<button class="outline secondary">Secondary outline</button>
+					<button class="outline contrast">Contrast outline</button>
+				</p>
+			</section>
+			<!-- ./ Buttons -->
+
+			<!-- Tables -->
+			<section id="tables">
+				<h2>Tables</h2>
+				<div class="overflow-auto">
+					<table class="striped">
+						<thead>
+							<tr>
+								<th scope="col">#</th>
+								<th scope="col">Heading</th>
+								<th scope="col">Heading</th>
+								<th scope="col">Heading</th>
+								<th scope="col">Heading</th>
+								<th scope="col">Heading</th>
+								<th scope="col">Heading</th>
+								<th scope="col">Heading</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<th scope="row">1</th>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+							</tr>
+							<tr>
+								<th scope="row">2</th>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+							</tr>
+							<tr>
+								<th scope="row">3</th>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+								<td>Cell</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+			<!-- ./ Tables -->
+
+			<!-- Accordions -->
+			<section id="accordions">
+				<h2>Accordions</h2>
+				<details>
+					<summary>Accordion 1</summary>
+					<p>
+						Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque urna diam,
+						tincidunt nec porta sed, auctor id velit. Etiam venenatis nisl ut orci consequat, vitae
+						tempus quam commodo. Nulla non mauris ipsum. Aliquam eu posuere orci. Nulla convallis
+						lectus rutrum quam hendrerit, in facilisis elit sollicitudin. Mauris pulvinar pulvinar
+						mi, dictum tristique elit auctor quis. Maecenas ac ipsum ultrices, porta turpis sit
+						amet, congue turpis.
+					</p>
+				</details>
+				<details open>
+					<summary>Accordion 2</summary>
+					<ul>
+						<li>Vestibulum id elit quis massa interdum sodales.</li>
+						<li>Nunc quis eros vel odio pretium tincidunt nec quis neque.</li>
+						<li>Quisque sed eros non eros ornare elementum.</li>
+						<li>Cras sed libero aliquet, porta dolor quis, dapibus ipsum.</li>
+					</ul>
+				</details>
+			</section>
+			<!-- ./ Accordions -->
+
+			<!-- Article-->
+			<article id="article">
+				<h2>Article</h2>
+				<p>
+					Nullam dui arcu, malesuada et sodales eu, efficitur vitae dolor. Sed ultricies dolor non
+					ante vulputate hendrerit. Vivamus sit amet suscipit sapien. Nulla iaculis eros a elit
+					pharetra egestas. Nunc placerat facilisis cursus. Sed vestibulum metus eget dolor pharetra
+					rutrum.
+				</p>
+				<footer>
+					<small>Duis nec elit placerat, suscipit nibh quis, finibus neque.</small>
+				</footer>
+			</article>
+			<!-- ./ Article-->
+
+	</main>
+	<!-- ./ Main -->
+
+	<!-- Footer -->
+	<footer class="container">
+		<small><a href="https://www.cei.washington.edu/">University of Washington Clean Energy Institute</a> •
+			<a
+				href="https://www.cei.washington.edu/education/uw-graduate-students/graduate-fellowship/products-of-lasting-value/">Product
+				of lasting value</a></small>
+	</footer>
+	<!-- ./ Footer -->
+
+	<!-- Modal example -->
+	<dialog id="modal-example">
+		<article>
+			<header>
+				<button aria-label="Close" rel="prev" data-target="modal-example" onclick="toggleModal(event)"></button>
+				<h3>Confirm your action!</h3>
+			</header>
+			<p>
+				Cras sit amet maximus risus. Pellentesque sodales odio sit amet augue finibus
+				pellentesque. Nullam finibus risus non semper euismod.
+			</p>
+			<footer>
+				<button role="button" class="secondary" data-target="modal-example" onclick="toggleModal(event)">
+					Cancel</button><button autofocus data-target="modal-example" onclick="toggleModal(event)">
+					Confirm
+				</button>
+			</footer>
+		</article>
+	</dialog>
+	<!-- ./ Modal example -->
+
+	<!-- Minimal theme switcher -->
+	<script src="js/minimal-theme-switcher.js"></script>
+
+	<!-- Modal -->
+	<script src="js/modal.js"></script>
+</body>
+
+</html>
