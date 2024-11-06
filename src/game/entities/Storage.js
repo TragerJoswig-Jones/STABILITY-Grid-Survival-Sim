@@ -5,16 +5,16 @@ export class Storage extends Entity {
 	constructor(capacity = 100, chargeRate = 10, dischargeRate = 10, efficiency = 1) {
 		let position = { x: 0, y: 0 };  //TODO: remove extends Entity for elements that do not use a position
 		super(position);
-		this.states = { soc: 0 };
-		this.maxSOC = capacity;
-		this.minSOC = 0;  // TODO: add a more sophisticated initialization so this is not large
+		this.states = { energy: 0 };
+		this.maxEnergy = capacity;
+		this.minEnergy = 0;  // TODO: add a more sophisticated initialization so this is not large
 		this.chargeRate = chargeRate;
 		this.dischargeRate = dischargeRate;
 		this.efficiency = efficiency;
 	}
 
 	updateStates(time, input) {
-		this.states.soc += input * time.secondsPassed;
+		this.states.energy += input * time.secondsPassed;
 	}
 
 	control(time, input) {
@@ -27,13 +27,13 @@ export class Storage extends Entity {
 			power = input
 		}
 		let energy = power * time.secondsPassed / 3600;
-		if ((this.states.soc - energy) > this.maxSOC) {
-			power = (this.states.soc - this.maxSOC) / time.secondsPassed;
-		} else if ((this.states.soc - energy) < this.minSOC) {
-			power = (this.states.soc - this.minSOC) / time.secondsPassed;
+		if ((this.states.energy - energy) > this.maxEnergy) {
+			power = (this.states.energy - this.maxEnergy) / time.secondsPassed;
+		} else if ((this.states.energy - energy) < this.minEnergy) {
+			power = (this.states.energy - this.minEnergy) / time.secondsPassed;
 		}
 		energy = power * time.secondsPassed / 3600;
-		this.states.soc -= energy * this.efficiency;
+		this.states.energy -= energy * this.efficiency;
 		return power
 	}
 

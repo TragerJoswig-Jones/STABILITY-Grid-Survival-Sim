@@ -71,7 +71,7 @@ export class GameScene extends Scene {
     let kp = 0;
     let ki = 0;
     let kd = 0;
-    this.pidEnabled = false;
+    this.pidEnabled = true; //false;
 
     this.genLimitsEnabled = false;
     this.maxGenLimit = 0.5;  // p.u.
@@ -274,9 +274,15 @@ export class GameScene extends Scene {
       if (this.level > 5 && this.maxLoadStep < 50) {
         this.maxLoadStep += 5;
       }
+      if (this.level > 15 && this.maxLoadStep < 80) {
+        this.maxLoadStep += 5;
+      }
 
       if (this.level > 5 && this.loadUpdateTime > 5) {
         this.loadUpdateTime -= 1;
+      }
+      if (this.level > 15 && this.loadUpdateTime > 2) {
+        this.loadUpdateTime -= 0.5;
       }
 
       if (this.level == 5) {  // Unlocks storage at level 5
@@ -324,8 +330,7 @@ export class GameScene extends Scene {
 
       if (this.level == 12) {  // Increase size of the storage to handle longer durations of power shortfall
         let scalePercent = 2;
-        this.storage.maxSOC *= scalePercent;
-        this.storage.states.soc /= scalePercent;
+        this.storage.maxEnergy *= scalePercent;
 
         this.storage.dischargeRate *= scalePercent;
         this.storage.chargeRate *= scalePercent;
@@ -488,8 +493,8 @@ export class GameScene extends Scene {
       }
 
       storagePower = this.storage.control(time, storageDispatch)
-      let storageSOC = this.storage.states.soc;
-      this.storSOCBar.update(storageSOC / this.storage.maxSOC);
+      let storageEnergy = this.storage.states.energy;
+      this.storSOCBar.update(storageEnergy / this.storage.maxEnergy);
     }
 
     this.genBar.max_percent = this.maxPower / this.genMech.s_rated;
