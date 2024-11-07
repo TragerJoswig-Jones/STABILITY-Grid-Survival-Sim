@@ -89,7 +89,7 @@ export class GameScene extends Scene {
 
     // Display entities
     this.genBar = new PowerBar({ x: SCREEN_WIDTH * (0.75), y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'blue', true, false, this.sNominal, { name: 'Power', unit: 'MW' }, { label: "Generation", leftSide: false, fontSize: 15 });
-    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.25) - SCREEN_WIDTH / 10, y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red', true, false, this.sNominal, { name: 'Power', unit: 'MW' }, { label: "Load", leftSide: true, fontSize: 15 });
+    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.25) - SCREEN_WIDTH * BAR_WIDTH_SCALE, y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red', true, false, this.sNominal, { name: 'Power', unit: 'MW' }, { label: "Load", leftSide: true, fontSize: 15 });
     this.plot = new Plot({ x: SCREEN_WIDTH * (0.1), y: plotY }, { width: SCREEN_WIDTH * 0.8, height: SCREEN_HEIGHT * 0.2 }, 1000, plotBounds, 'blue', FREQ_NOM, this.freqLim, "time (s)", "frequency (Hz)", 12)
 
     //TODO: Automatically shift things here based on the generator image sizes
@@ -98,7 +98,7 @@ export class GameScene extends Scene {
 
     let storBarY = SCREEN_HEIGHT * (0.7); //powerBarY + SCREEN_HEIGHT * BAR_HEIGHT_SCALE + 40;
     let storLabel = { name: 'Energy:', unit: 'kWh' };
-    this.storSOCBar = new PowerBar({ x: SCREEN_WIDTH * (0.5) - 0.5 * SCREEN_WIDTH * BAR_WIDTH_SCALE, y: storBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * 0.5 * BAR_HEIGHT_SCALE },
+    this.storSOCBar = new PowerBar({ x: SCREEN_WIDTH * (0.5) - 0.5 * SCREEN_WIDTH * BAR_WIDTH_SCALE, y: storBarY + SCREEN_HEIGHT * 0.05 }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * 0.5 * BAR_HEIGHT_SCALE },
       'green', true, false, storCapacity * 1000, storLabel);
 
     // Display buttons
@@ -111,13 +111,14 @@ export class GameScene extends Scene {
     this.buttons.set('charge', storChargeButton);
     this.buttons.set('discharge', storDischargeButton)
 
-    let pidPanel = { x: SCREEN_WIDTH * (0.5) - SCREEN_WIDTH * (0.25) / 2, y: powerBarY, w: SCREEN_WIDTH * (0.25), h: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }
-    let kpPlusPIDButton = { label: "+", x: pidPanel.x + pidPanel.w * 1 / 3, y: pidPanel.y, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
-    let kpMinusPIDButton = { label: "-", x: pidPanel.x + pidPanel.w * 2 / 3, y: pidPanel.y, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
-    let kiPlusPIDButton = { label: "+", x: pidPanel.x + pidPanel.w * 1 / 3, y: pidPanel.y + pidPanel.h * 3 / 8, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
-    let kiMinusPIDButton = { label: "-", x: pidPanel.x + pidPanel.w * 2 / 3, y: pidPanel.y + pidPanel.h * 3 / 8, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
-    let kdPlusPIDButton = { label: "+", x: pidPanel.x + pidPanel.w * 1 / 3, y: pidPanel.y + pidPanel.h * 6 / 8, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
-    let kdMinusPIDButton = { label: "-", x: pidPanel.x + pidPanel.w * 2 / 3, y: pidPanel.y + pidPanel.h * 6 / 8, w: pidPanel.w / 4, h: pidPanel.h * 1 / 6, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    //TODO: Set button width and height based on the screen width and height. Remove magic numbers here
+    let pidPanel = { x: 0.1 * SCREEN_WIDTH, y: powerBarY + SCREEN_HEIGHT * BAR_HEIGHT_SCALE + 30, w: SCREEN_WIDTH * (0.8), h: SCREEN_HEIGHT * BAR_HEIGHT_SCALE * 1 / 6 }
+    let kpPlusPIDButton = { label: "+", x: pidPanel.x + pidPanel.w * 1 / 11, y: pidPanel.y, w: 20, h: 20, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    let kpMinusPIDButton = { label: "-", x: pidPanel.x + pidPanel.w * 2 / 11, y: pidPanel.y, w: 20, h: 20, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    let kiPlusPIDButton = { label: "+", x: pidPanel.x + pidPanel.w * 5 / 11, y: pidPanel.y, w: 20, h: 20, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    let kiMinusPIDButton = { label: "-", x: pidPanel.x + pidPanel.w * 6 / 11, y: pidPanel.y, w: 20, h: 20, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    let kdPlusPIDButton = { label: "+", x: pidPanel.x + pidPanel.w * 9 / 11, y: pidPanel.y, w: 20, h: 20, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
+    let kdMinusPIDButton = { label: "-", x: pidPanel.x + pidPanel.w * 10 / 11, y: pidPanel.y, w: 20, h: 20, r: 10, enabled: this.pidEnabled, held: false, path: NaN };
 
     this.buttons.set('kpp', kpPlusPIDButton);
     this.buttons.set('kpm', kpMinusPIDButton);
