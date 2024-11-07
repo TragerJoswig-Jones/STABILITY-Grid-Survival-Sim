@@ -71,7 +71,7 @@ export class GameScene extends Scene {
     let kp = 0;
     let ki = 0;
     let kd = 0;
-    this.pidEnabled = true; //false;
+    this.pidEnabled = false;
 
     this.genLimitsEnabled = false;
     this.maxGenLimit = 0.5;  // p.u.

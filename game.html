@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+	<meta />
+	<title>STABILITY: Grid Survival Sim</title>
+	<link rel="icon" type="image/png" href="/images/favicon.ico" />
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300&display=swap" rel="stylesheet" />
+	<style>
+		html,
+		body {
+			padding: 0;
+			margin: 0;
+			height: 100%;
+			-webkit-user-select: none;
+			user-select: none;
+			touch-action: none;
+		}
+
+		body {
+			display: flex;
+		}
+
+		body,
+		canvas {
+			background-color: black;
+		}
+
+		canvas {
+			width: 100%;
+			object-fit: contain;
+			image-rendering: crisp-edges;
+			image-rendering: pixelated;
+		}
+
+		img,
+		audio {
+			display: none;
+		}
+	</style>
+	<script type="importmap">
+			{
+				"imports": {
+					"engine/": "./src/engine/",
+					"game/": "./src/game/"
+				}
+			}
+		</script>
+	<script type="module" src="./src/index.js"></script>
+</head>
+
+<body>
+	<!-- <button id="powerButton" type="button">Click Me!</button> -->
+	<audio id="bgm" src="./sound/area12.ogg" preload loop></audio>
+</body>
+
+</html>
