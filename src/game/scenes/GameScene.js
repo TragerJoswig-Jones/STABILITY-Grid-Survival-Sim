@@ -7,6 +7,7 @@ import { PowerBar } from 'game/entities/PowerBar.js';
 import { SwingDynamics } from 'game/entities/SwingDynamics.js';
 import { PIDControl } from 'game/entities/PIDControl.js';
 import { Storage } from 'game/entities/Storage.js';
+import { GenSymbol } from 'game/entities/GeneratorSymbol.js';
 import { isKeyPressed, isKeyDown, whereClickLocation, getTouches } from 'engine/inputHandler.js';
 import { Control } from 'game/constants/controls.js';
 import { LOAD_CURVE } from 'game/constants/load.js';
@@ -42,7 +43,7 @@ export class GameScene extends Scene {
     this.maxLoadStep = 0;
     this.load = ((this.maxloadCurve - this.minloadCurve) * LOAD_CURVE[this.iMinute % LOAD_CURVE.length] + this.minloadCurve) * this.sNominal;
 
-    this.freqBound = 3;
+    this.freqBound = FREQ_NOM * 3 / 4 //3 / 60 * FREQ_NOM;
     this.freqLim = [FREQ_NOM - this.freqBound, FREQ_NOM + this.freqBound]
     this.omegaMin = 2 * Math.PI * this.freqLim[0];
     this.omegaMax = 2 * Math.PI * this.freqLim[1];
@@ -59,19 +60,19 @@ export class GameScene extends Scene {
     this.minTimeForBonus = 1;
 
     let omegaFilt = 0.3;  // Gen Low-pass filter frequency (rad/s)
-    let genInertia = 5;  // H (p.u.)
+    let genInertia = 1; //5;  // H (p.u.)
     let genMaxPower = 100;  // MW
 
     let storCapacity = 0.1;  // MW
     let storDischargeLim = 50;  // MW
     let storChargeLim = 50;  // MW
     let storEfficiency = 0.9;
-    this.storageEnabled = false;
+    this.storageEnabled = true;
 
     let kp = 0;
     let ki = 0;
     let kd = 0;
-    this.pidEnabled = false;
+    this.pidEnabled = true;
 
     this.genLimitsEnabled = false;
     this.maxGenLimit = 0.5;  // p.u.
@@ -79,17 +80,23 @@ export class GameScene extends Scene {
     this.pvGenLimitsEnabled = false;
 
     // Display parameters
-    let plotBound = 5;
+    let plotBound = FREQ_NOM * 10 / 8 //5 / 60 * FREQ_NOM;;
     let plotBounds = [FREQ_NOM - plotBound, FREQ_NOM + plotBound];
     let powerBarY = SCREEN_HEIGHT * (0.4);
     let plotY = SCREEN_HEIGHT * (0.15);
 
+    let wavePlotBounds = [-1.1, 1.1];
+
     // Display entities
-    this.genBar = new PowerBar({ x: SCREEN_WIDTH * (0.7), y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'blue', true, false, this.sNominal, { name: 'Power', unit: 'MW' }, { label: "Generation", leftSide: false, fontSize: 15 });
-    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.3) - SCREEN_WIDTH / 10, y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red', true, false, this.sNominal, { name: 'Power', unit: 'MW' }, { label: "Load", leftSide: true, fontSize: 15 });
+    this.genBar = new PowerBar({ x: SCREEN_WIDTH * (0.75), y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'blue', true, false, this.sNominal, { name: 'Power', unit: 'MW' }, { label: "Generation", leftSide: false, fontSize: 15 });
+    this.loadBar = new PowerBar({ x: SCREEN_WIDTH * (0.25) - SCREEN_WIDTH / 10, y: powerBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * BAR_HEIGHT_SCALE }, 'red', true, false, this.sNominal, { name: 'Power', unit: 'MW' }, { label: "Load", leftSide: true, fontSize: 15 });
     this.plot = new Plot({ x: SCREEN_WIDTH * (0.1), y: plotY }, { width: SCREEN_WIDTH * 0.8, height: SCREEN_HEIGHT * 0.2 }, 1000, plotBounds, 'blue', FREQ_NOM, this.freqLim, "time (s)", "frequency (Hz)", 12)
 
-    let storBarY = powerBarY + SCREEN_HEIGHT * BAR_HEIGHT_SCALE + 40;
+    //TODO: Automatically shift things here based on the generator image sizes
+    this.wavePlot = new Plot({ x: SCREEN_WIDTH * (0.4), y: plotY + SCREEN_HEIGHT * 0.23 + 95 }, { width: SCREEN_WIDTH * 0.2, height: SCREEN_HEIGHT * 0.075 }, 200, wavePlotBounds, 'blue', 0, [], "time (s)", "current (A)", 12)
+    this.genDiagram = new GenSymbol({ x: SCREEN_WIDTH * (0.5) - 45, y: plotY + SCREEN_HEIGHT * 0.23 }, 0.9)
+
+    let storBarY = SCREEN_HEIGHT * (0.7); //powerBarY + SCREEN_HEIGHT * BAR_HEIGHT_SCALE + 40;
     let storLabel = { name: 'Energy:', unit: 'kWh' };
     this.storSOCBar = new PowerBar({ x: SCREEN_WIDTH * (0.5) - 0.5 * SCREEN_WIDTH * BAR_WIDTH_SCALE, y: storBarY }, { width: SCREEN_WIDTH * BAR_WIDTH_SCALE, height: SCREEN_HEIGHT * 0.5 * BAR_HEIGHT_SCALE },
       'green', true, false, storCapacity * 1000, storLabel);
@@ -261,9 +268,9 @@ export class GameScene extends Scene {
       this.levelEndTime += this.calcLevelDuration(this.level);
 
       if (this.level == 2) {  // Turns off high-inertia/slow-mode at level 2
-        this.systemSwing.h = 5;
-      } else if (this.level > 2 && this.systemSwing.h > 3) {  // Decreases inertia each level until j = 0.5
-        this.systemSwing.h -= 0.1;  // Decreases to 1 in 10 levels
+        this.systemSwing.h = 0.75//5;
+      } else if (this.level > 2 && this.systemSwing.h > 0.1) {//3) {  // Decreases inertia each level until j = 0.5
+        this.systemSwing.h -= 0.05; //0.1;  // Decreases to 1 in 10 levels
         //this.systemSwing.updateH(this.systemSwing.j)  // Decreases to 0.5 in 10 levels
       }
 
@@ -506,6 +513,10 @@ export class GameScene extends Scene {
 
     this.plot.update(this.systemSwing.states.omega / (2 * Math.PI))
 
+    this.wavePlot.update(this.loadBar.percent * Math.sin(this.systemSwing.states.theta))
+
+    this.genDiagram.update(this.systemSwing.states.theta)
+
     if (this.lightness > 22) this.lightness -= 200 * time.secondsPassed;
   }
 
@@ -518,6 +529,9 @@ export class GameScene extends Scene {
       this.storSOCBar.draw(context);
     }
     this.plot.draw(context);
+    context.strokeStyle = `hsl(134 90% ${this.lightness}%)`;
+    this.wavePlot.draw(context);
+    this.genDiagram.draw(context)
     this.drawBorder(context);
     this.drawMessage(context);
     this.drawButtons(context);
