@@ -51,7 +51,7 @@ export class GameScene extends Scene {
     this.overFreqCount = 0;
     this.timeLim = 10;  // frames outside of bound before game over
 
-    this.calcLevelDuration = (level) => level * 10 + 10;
+    this.calcLevelDuration = (level) => level * 6 + 14;
     this.level = 1;
     this.levelEndTime = this.calcLevelDuration(this.level * 2);  // Adding in bonus time for level 1
     this.playTime = 0;
@@ -60,7 +60,7 @@ export class GameScene extends Scene {
     this.minTimeForBonus = 1;
 
     let omegaFilt = 0.3;  // Gen Low-pass filter frequency (rad/s)
-    let genInertia = 1; //5;  // H (p.u.)
+    let genInertia = 0.8; //5;  // H (p.u.)
     let genMaxPower = 100;  // MW
 
     let storCapacity = 0.1;  // MW
@@ -72,6 +72,10 @@ export class GameScene extends Scene {
     let kp = 0;
     let ki = 0;
     let kd = 0;
+    this.kpLim = 99;
+    this.kiLim = 20;
+    this.kdLim = 20;
+    let integralLimit = genMaxPower;
     this.pidEnabled = true;
 
     this.genLimitsEnabled = false;
@@ -135,7 +139,7 @@ export class GameScene extends Scene {
 
     this.storage = new Storage(storCapacity, storDischargeLim, storChargeLim, storEfficiency)
 
-    this.pidController = new PIDControl(0, 0, 0)
+    this.pidController = new PIDControl(0, 0, 0, integralLimit)
     this.pidController.set_point = OMEGA_NOM
 
     this.pidController.kp = kp;
@@ -269,7 +273,7 @@ export class GameScene extends Scene {
       this.levelEndTime += this.calcLevelDuration(this.level);
 
       if (this.level == 2) {  // Turns off high-inertia/slow-mode at level 2
-        this.systemSwing.h = 0.75//5;
+        this.systemSwing.h = 0.6//5;
       } else if (this.level > 2 && this.systemSwing.h > 0.1) {//3) {  // Decreases inertia each level until j = 0.5
         this.systemSwing.h -= 0.05; //0.1;  // Decreases to 1 in 10 levels
         //this.systemSwing.updateH(this.systemSwing.j)  // Decreases to 0.5 in 10 levels
@@ -334,6 +338,8 @@ export class GameScene extends Scene {
         this.maxLoadStep = this.maxLoadStep * percentIncrease;
         this.maxLoad = this.maxLoad * percentIncrease;
         this.minLoad = this.minLoad * percentIncrease;
+
+        this.pidController.integralLimit *= percentIncrease
       }
 
       if (this.level == 12) {  // Increase size of the storage to handle longer durations of power shortfall
@@ -467,12 +473,13 @@ export class GameScene extends Scene {
     }
 
     if (this.buttons.get('kpp').held) {
-      this.pidController.kp += 0.1;
+      this.pidController.kp += 1;
     } else if (this.buttons.get('kpm').held) {
-      this.pidController.kp -= 0.1;
+      this.pidController.kp -= 1;
     }
     if (this.buttons.get('kip').held) {
       this.pidController.ki += 0.1;
+
     } else if (this.buttons.get('kim').held) {
       this.pidController.ki -= 0.1;
     }
@@ -481,6 +488,23 @@ export class GameScene extends Scene {
     } else if (this.buttons.get('kdm').held) {
       this.pidController.kd -= 0.1;
     }
+
+    if (this.pidController.kp > this.kpLim) {
+      this.pidController.kp = this.kpLim
+    } else if (this.pidController.kp < -this.kpLim) {
+      this.pidController.kp = -this.kpLim
+    }
+    if (this.pidController.ki > this.kiLim) {
+      this.pidController.ki = this.kiLim
+    } else if (this.pidController.kp < -this.kiLim) {
+      this.pidController.ki = -this.kiLim
+    }
+    if (this.pidController.kd > this.kdLim) {
+      this.pidController.kd = this.kdLim
+    } else if (this.pidController.kd < -this.kdLim) {
+      this.pidController.kd = -this.kdLim
+    }
+
     this.pidController.update(time, this.systemSwing.states.omega);
     let mechPowerCtrl = this.pidController.control();
     this.genMech.update(time, this.mechPowerInput + mechPowerCtrl);  //TODO: Add in hard limits on the power from genMech in case I switch this to not be a lowpass filter in the future or add in temporary power output limits.
