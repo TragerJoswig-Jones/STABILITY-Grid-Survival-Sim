@@ -67,7 +67,7 @@ export class GameScene extends Scene {
     let storDischargeLim = 50;  // MW
     let storChargeLim = 50;  // MW
     let storEfficiency = 0.9;
-    this.storageEnabled = true;
+    this.storageEnabled = false;
 
     let kp = 0;
     let ki = 0;
@@ -76,7 +76,7 @@ export class GameScene extends Scene {
     this.kiLim = 20;
     this.kdLim = 20;
     let integralLimit = genMaxPower;
-    this.pidEnabled = true;
+    this.pidEnabled = false;
 
     this.genLimitsEnabled = false;
     this.maxGenLimit = 0.5;  // p.u.
