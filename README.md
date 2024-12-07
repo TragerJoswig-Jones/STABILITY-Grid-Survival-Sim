@@ -24,4 +24,13 @@ I foresee this game being used as an introduction to a teaching unit on electric
 
 ## Credits
 
-Based on shezzor's JavaScript Game Development Template (https://github.com/shezzor/javascript-game-development-template)
+* Developed by <a href="https://tragerjoswig-jones.github.io/index.html">Trager Joswig-Jones</a>.
+
+* The game itself was built off of shezzor's JavaScript Game Development Template (https://github.com/shezzor/javascript-game-development-template).
+
+* The info webpage was based on the <a href="https://picocss.com/examples"> Pico CSS preview example </a>.
+
+* This material is based in part upon work supported by the state of Washington through the <a href="https://www.cei.washington.edu/">University of Washington Clean Energy Institute</a>.
+<div align="center">
+<a href=https://tragerjoswig-jones.github.io/STABILITY-Grid-Survival-Sim/><img src="https://github.com/TragerJoswig-Jones/STABILITY-Grid-Survival-Sim/blob/main/images/CEI-logo_tag.png?raw=true" align="center" width="250px" alt="Clean Energy Institute logo"> </a>
+</div>
