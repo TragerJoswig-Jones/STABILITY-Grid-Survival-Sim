@@ -25,12 +25,22 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css" />
 	<!-- <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 	</script> -->
+
+	<style>
+		img {
+			display: block;
+			margin-left: auto;
+			margin-right: auto;
+		}
+	</style>
 </head>
 
 <body>
 	<!-- Header -->
 	<header class="container">
 		<hgroup>
+			<img src="images/CEI-logo_tag.png" alt="Clean Energy Institute Logo"
+				style="width: 15vw; min-width: 150px; float: right;">
 			<h1>STABILITY: Grid Survival Sim</h1>
 			<p>An electrical grid frequency balancing game.</p>
 		</hgroup>
@@ -46,7 +56,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 		<section id="howtoplay">
 			<h2>How to play</h2>
 			<p>
-				In this game, you will <b>balance power generation with the fluctuating power demand to maintain the
+				In this game, you will <b>balance power generation with the changing power demand to maintain the
 					grid frequency</b>. Don't let the frequency (blue line) go beyond the limits (red lines) or the game will end!
 				Press the power button (space bar on a keyboard) to increase power generated (blue bar) to match the load (red
 				bar) to keep the frequency steady. <b>The goal of the game is to generate as much energy as you can</b> without
@@ -79,13 +89,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 						grid?</h3>
 					<p>
 						An electrical power system is a network of components that generate, transmit, and consume electric power.
-						We
-						common refer to the large-scale power system that supplies power to our homes as <em>the grid</em>. The grid
-						is
-						an
-						alternating current (AC) system in which the voltage and currents within that system oscillate between
-						negative
-						and positive values. The rate at which these signals oscillate is refered to as their frequency.
+						We commonly refer to the large-scale power system that supplies power to our homes as <em>the grid</em>. The
+						grid is an alternating current (AC) system in which the voltage and currents within that system oscillate
+						between negative and positive values. The rate at which these signals oscillate is referred to as their
+						frequency.
 					</p>
 				</section>
 
@@ -96,7 +103,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 						time that we are consuming it. The electrical power being used to illuminate the lights above you was
 						generated at some power plant and traveled through the transmission lines at nearly the speed of light to
 						get there. Typically, in large scale power systems we do not store any significant amount of
-						energy within the system. Because of this the amount of power that we put into the system has to be equal
+						energy within the system. Because of this the amount of power that we put into the system must be equal
 						to the amount of power that we take out of the system. When the input and output power are equal, we say
 						that the powers are balanced.
 					</p>
@@ -109,11 +116,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 						power. These generators convert potential energy from resources such as coal, natural gas and hydropower
 						into electrical power. This conversion is done by first converting the energy into mechanical energy that
 						can push against turbine blades which are connected to and spin a rotor shaft. As the generator's rotor
-						spins, it produces a magnetic field which induces an electrical current in wires which suround the rotor.
+						spins, it produces a magnetic field which induces an electrical current in wires which surround the rotor.
 						This electrical current oscillates at a frequency that is proportional to the rate that the rotor spins at.
 						This coupling between the mechanical rotation and electrical oscillations can be used to help us determine
 						if the power input and power output is balanced. If the mechanical power input is greater than the
-						electrical power output, then than the rotational frequency of the rotor will increase as more energy is
+						electrical power output, then the rotational frequency of the rotor will increase as more energy is
 						stored as rotational energy. If the mechanical power input is less than the electrical power output, then
 						the rate at which the rotor spins will decrease as energy is taken from it. Since the electrical frequency
 						is proportional to the rotational frequency, we know that our system is balanced if the electrical frequency
@@ -130,8 +137,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 						far
 						from this value the system can become unstable and the components within the system can become damaged. If
 						the
-						frequency deviates to far from the nominal value we have to shut the system down resulting in a
-						complete interruption of power to consumers, typically refered to as a blackout.
+						frequency deviates too far from the nominal value we have to shut the system down resulting in a
+						complete interruption of power to consumers, typically referred to as a blackout.
 					</p>
 				</section>
 
@@ -151,7 +158,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 					<h3>What is the difference between power and energy?</h3>
 					<p>
 						Energy is the ability to do work.
-						Power is how much energy is being transfered at any one time.
+						Power is how much energy is being transferred at any one time.
 						An object that has energy can transfer that energy to another object, and the rate of this transfer of
 						energy is power.
 						In this game the score is the total amount of energy that was delivered to the load.
@@ -337,10 +344,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 				<!-- Footer -->
 				<footer class="container">
-					<small><a href="https://www.cei.washington.edu/">University of Washington Clean Energy Institute</a> •
-						<a
-							href="https://www.cei.washington.edu/education/uw-graduate-students/graduate-fellowship/products-of-lasting-value/">Product
-							of lasting value</a></small>
+					<hr style="color: white; border-color: white; background-color: white">
+					<small>
+						Developed by <a href="https://tragerjoswig-jones.github.io/index.html">Trager Joswig-Jones</a>
+						•
+						This material is based in part upon work supported by the
+						state of Washington through the <a href="https://www.cei.washington.edu/">University of Washington Clean
+							Energy Institute.</a>
+					</small>
+					<a href="https://www.cei.washington.edu/">
+						<img src="images/CEI-logo_tag.png" alt="Clean Energy Institute Logo"
+							style="width: 20vw; min-width: 200px; margin-top: 30px">
+					</a>
 				</footer>
 				<!-- ./ Footer -->
 
