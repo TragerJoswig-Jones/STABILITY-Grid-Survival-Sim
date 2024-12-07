@@ -51,9 +51,9 @@ export class GameScene extends Scene {
     this.overFreqCount = 0;
     this.timeLim = 10;  // frames outside of bound before game over
 
-    this.calcLevelDuration = (level) => level * 6 + 14;
+    this.calcLevelDuration = (level) => Math.min(level, 11) * 6 + 14;  // Determines how long each level is
     this.level = 1;
-    this.levelEndTime = this.calcLevelDuration(this.level * 2);  // Adding in bonus time for level 1
+    this.levelEndTime = this.calcLevelDuration(this.level * 2);  // Adding in extra time for level 1
     this.playTime = 0;
     this.bonusCounter = 0;
     this.bonusMultiplier = 5;
@@ -79,9 +79,9 @@ export class GameScene extends Scene {
     this.pidEnabled = false;
 
     this.genLimitsEnabled = false;
-    this.maxGenLimit = 0.5;  // p.u.
+    this.maxGenLimit = 0.2;  // p.u.
 
-    this.pvGenLimitsEnabled = false;
+    this.pvGenLimitsEnabled = false; // Not implemented
 
     // Display parameters
     let plotBound = FREQ_NOM * 10 / 8 //5 / 60 * FREQ_NOM;;
@@ -274,13 +274,12 @@ export class GameScene extends Scene {
 
       if (this.level == 2) {  // Turns off high-inertia/slow-mode at level 2
         this.systemSwing.h = 0.6//5;
-      } else if (this.level > 2 && this.systemSwing.h > 0.1) {//3) {  // Decreases inertia each level until j = 0.5
-        this.systemSwing.h -= 0.05; //0.1;  // Decreases to 1 in 10 levels
-        //this.systemSwing.updateH(this.systemSwing.j)  // Decreases to 0.5 in 10 levels
+      } else if (this.level > 2 && this.systemSwing.h > 0.2) {//3) {  // Decreases inertia each level until j = 0.5
+        this.systemSwing.h -= 0.05; // decreases to 0.2 in 8 levels
       }
 
       if (this.level > 1 && this.genMech.omega_filt < 0.5) {
-        this.genMech.omega_filt += 0.05  // Increase filter frequency to quicken response
+        this.genMech.omega_filt += 0.05  // Increase filter frequency to quicken response in the first 5 levels
       }
 
       if (this.level > 5 && this.maxLoadStep < 50) {
@@ -303,7 +302,7 @@ export class GameScene extends Scene {
         this.buttons.get("discharge").enabled = true;
       }
 
-      if (this.level == 15) {  // Unlocks pid control at level 10
+      if (this.level == 12) {  // Unlocks pid control at level 10
         this.pidEnabled = true;
         this.buttons.get('kpp').enabled = true;
         this.buttons.get('kpm').enabled = true;
@@ -313,9 +312,22 @@ export class GameScene extends Scene {
         this.buttons.get('kdm').enabled = true;
       }
 
-      if (this.level == 12) {
+      if (this.level > 12 && this.systemSwing.h > 0.1) {
+        this.systemSwing.h -= 0.0125;  // Decreases from 0.2 to 0.1 in 8 levels
+      }
+
+      if (this.level == 7) {
         this.genLimitsEnabled = true;
         this.genBar.lim_display = true;
+      } else if (this.level > 7 && this.maxGenLimit < 0.5) {
+        this.maxGenLimit += 0.05;  // 6 levels to go from 20% to 50% max limiting
+      } else if (this.level > 16 && this.maxGenLimit < 0.7) {
+        this.maxGenLimit += 0.025;  // 8 levels to go from 50% to 70% max limiting
+      }
+      if (this.level > 20 && this.genLimUpdateTime < 5) {
+        this.genLimUpdateTime += 0.1  // 20 levels to go from 3s to 5s
+      } else if (this.level > 9 && this.genLimUpdateTime > 3) {
+        this.genLimUpdateTime -= 0.1  // 20 levels to go from 5s to 3s
       }
 
       if (this.level == 10) {  // Increase power levels to give higher rewards for harder levels
@@ -342,7 +354,7 @@ export class GameScene extends Scene {
         this.pidController.integralLimit *= percentIncrease
       }
 
-      if (this.level == 12) {  // Increase size of the storage to handle longer durations of power shortfall
+      if (this.level == 14) {  // Increase size of the storage to handle longer durations of power shortfall
         let scalePercent = 2;
         this.storage.maxEnergy *= scalePercent;
 
@@ -473,9 +485,9 @@ export class GameScene extends Scene {
     }
 
     if (this.buttons.get('kpp').held) {
-      this.pidController.kp += 1;
+      this.pidController.kp += 0.5;
     } else if (this.buttons.get('kpm').held) {
-      this.pidController.kp -= 1;
+      this.pidController.kp -= 0.5;
     }
     if (this.buttons.get('kip').held) {
       this.pidController.ki += 0.1;
